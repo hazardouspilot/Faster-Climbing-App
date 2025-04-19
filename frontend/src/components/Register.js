@@ -37,11 +37,17 @@ const Register = () => {
       return;
     }
 
+    if (formData.username.length < 3) {
+      setError("Username must be at least 3 characters");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch("/api/register_users", {
+      const response = await fetch("http://localhost:7071/api/register_users", {
         method: "POST",
+        mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },

@@ -3,6 +3,7 @@ import json
 import azure.functions as func
 from shared.db import AzureSQLDB
 import hashlib
+# from shared.cors_middleware import CorsMiddleware
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     db = AzureSQLDB()
@@ -57,10 +58,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "access": user_data[0][5]
         }
         
+        # headers = {
+        # 'Access-Control-Allow-Origin': 'http://localhost:3000',
+        # 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        # 'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        # }
+
         return func.HttpResponse(
             json.dumps({"message": "Login successful", "user": user_session}),
             status_code=200,
             mimetype="application/json"
+            # headers=headers
         )
         
     except Exception as e:

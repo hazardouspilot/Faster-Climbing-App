@@ -1,0 +1,10 @@
+environment location: C:\Users\harol\anaconda3\envs\backend-venv
+python version 3.10
+
+to activate:
+
+conda activate backend-venv
+
+to deactivate:
+
+conda deactivate
