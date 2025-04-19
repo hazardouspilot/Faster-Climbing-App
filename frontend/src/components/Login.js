@@ -25,7 +25,7 @@ const Login = ({ onLoginSuccess }) => {
     try {
       const response = await fetch("http://localhost:7071/api/login_user", {
         method: "POST",
-        mode: "no-cors",
+        // mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },

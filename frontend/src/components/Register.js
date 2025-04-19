@@ -47,7 +47,7 @@ const Register = () => {
     try {
       const response = await fetch("http://localhost:7071/api/register_users", {
         method: "POST",
-        mode: "no-cors",
+        // mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },

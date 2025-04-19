@@ -4,11 +4,25 @@ import azure.functions as func
 from shared.db import AzureSQLDB
 import hashlib
 import uuid
-import time
+
 # from shared.cors_middleware import CorsMiddleware
+
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+}
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     db = AzureSQLDB()
+
+    if req.method == 'OPTIONS':
+        # Preflight request
+        return func.HttpResponse(
+            "",
+            status_code=204,
+            headers=CORS_HEADERS
+        )
     
     try:
         # Get request body
@@ -26,7 +40,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(
                 json.dumps({"error": "Username and password are required"}),
                 status_code=400,
-                mimetype="application/json"
+                mimetype="application/json",
+                headers=CORS_HEADERS
             )
         
         # Check if username already exists
@@ -35,7 +50,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(
                 json.dumps({"error": "Username already exists"}),
                 status_code=409,
-                mimetype="application/json"
+                mimetype="application/json",
+                headers=CORS_HEADERS
             )
         
         # Hash the password with salt
@@ -48,18 +64,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "INSERT INTO Climbers (Username, Pass, FirstName, LastName, Email, Access) VALUES (?, ?, ?, ?, ?, ?)",
             (username, password_with_salt, first_name, last_name, email, 'Regular')
         )
-
-        # headers = {
-        # 'Access-Control-Allow-Origin': 'http://localhost:3000',
-        # 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        # 'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        # }
         
         return func.HttpResponse(
             json.dumps({"message": "User registered successfully"}),
             status_code=201,
-            mimetype="application/json"
-            # headers=headers
+            mimetype="application/json",
+            headers=CORS_HEADERS
         )
         
     except Exception as e:
@@ -67,5 +77,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(
             json.dumps({"error": str(e)}),
             status_code=500,
-            mimetype="application/json"
+            mimetype="application/json",
+            headers=CORS_HEADERS
         )

@@ -5,8 +5,22 @@ from shared.db import AzureSQLDB
 import hashlib
 # from shared.cors_middleware import CorsMiddleware
 
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+}
+
 def main(req: func.HttpRequest) -> func.HttpResponse:
     db = AzureSQLDB()
+
+    if req.method == 'OPTIONS':
+        # Preflight request
+        return func.HttpResponse(
+            "",
+            status_code=204,
+            headers=CORS_HEADERS
+        )
     
     try:
         # Get request body
@@ -21,7 +35,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(
                 json.dumps({"error": "Username and password are required"}),
                 status_code=400,
-                mimetype="application/json"
+                mimetype="application/json",
+                headers=CORS_HEADERS
             )
         
         # Fetch user from database
@@ -29,9 +44,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         if not user_data:
             return func.HttpResponse(
-                json.dumps({"error": "Invalid username or password"}),
+                json.dumps({"error": "Invalid username"}),
                 status_code=401,
-                mimetype="application/json"
+                mimetype="application/json",
+                headers=CORS_HEADERS
             )
         
         # Verify password
@@ -44,9 +60,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         if input_hash != stored_hash:
             return func.HttpResponse(
-                json.dumps({"error": "Invalid username or password"}),
+                json.dumps({"error": "Invalid password"}),
                 status_code=401,
-                mimetype="application/json"
+                mimetype="application/json",
+                headers=CORS_HEADERS
             )
         
         # Create user session data (without sensitive info)
@@ -57,18 +74,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "email": user_data[0][4],
             "access": user_data[0][5]
         }
-        
-        # headers = {
-        # 'Access-Control-Allow-Origin': 'http://localhost:3000',
-        # 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        # 'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        # }
 
         return func.HttpResponse(
             json.dumps({"message": "Login successful", "user": user_session}),
             status_code=200,
-            mimetype="application/json"
-            # headers=headers
+            mimetype="application/json",
+            headers=CORS_HEADERS
         )
         
     except Exception as e:
@@ -76,5 +87,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(
             json.dumps({"error": str(e)}),
             status_code=500,
-            mimetype="application/json"
+            mimetype="application/json",
+            headers=CORS_HEADERS
         )
