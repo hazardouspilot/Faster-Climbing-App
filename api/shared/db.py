@@ -45,7 +45,9 @@ class AzureSQLDB:
     def fetch_all(self, sql, params=()):
         with self.get_cursor() as cursor:
             cursor.execute(sql, params) if params else cursor.execute(sql)
-            return cursor.fetchall()
+            columns = [column[0] for column in cursor.description]
+            rows = cursor.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
 
     def fetch_generator(self, sql, params=()):
         with self.get_cursor() as cursor:

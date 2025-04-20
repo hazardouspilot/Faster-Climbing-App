@@ -51,7 +51,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
         
         # Verify password
-        stored_password = user_data[0][1]
+        stored_password = user_data[0]['Pass']
         salt = stored_password.split(':')[0]
         stored_hash = stored_password.split(':')[1]
         
@@ -68,11 +68,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         # Create user session data (without sensitive info)
         user_session = {
-            "username": user_data[0][0],
-            "firstName": user_data[0][2],
-            "lastName": user_data[0][3],
-            "email": user_data[0][4],
-            "access": user_data[0][5]
+            "username": user_data[0]['Username'],
+            "firstName": user_data[0]['FirstName'],
+            "lastName": user_data[0]['LastName'],
+            "email": user_data[0]['Email'],
+            "access": user_data[0]['Access']
         }
 
         return func.HttpResponse(
