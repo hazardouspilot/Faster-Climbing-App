@@ -87,43 +87,76 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     mimetype='application/json',
                     headers=CORS_HEADERS
                 )
-            # Prioritise lead > top rope > auto-belay
+            # Only include route-mode combos where user has never sent it in that mode
             mode_priority = "CASE WHEN A.Mode_column = 'Lead' THEN 1 WHEN A.Mode_column = 'Top Rope' THEN 2 WHEN A.Mode_column = 'Auto-belay' THEN 3 ELSE 4 END"
             sql = f"""
                 SELECT TOP 5
-                    R.RID, R.Grade, R.Colour, R.Location, R.GradingSystem, G.GradeOrder,
-                    A.Mode_column, MAX(A.AttemptNo) as MaxAttemptNo,
-                    MAX(A.Result) as BestResult, MAX(A.Date_column) as LastDate, MAX(A.Time_column) as LastTime
+                    R.RID,
+                    R.Grade,
+                    R.Colour,
+                    R.Location,
+                    R.GradingSystem,
+                    G.GradeOrder,
+                    A.Mode_column,
+                    COUNT(*) as Attempts,
+                    MAX(A.Date_column) as LastAttempt,
+                    BestAttempt.BestResult
                 FROM Attempts A
                 JOIN Routes R ON A.RID = R.RID
-                JOIN Grades G ON R.Grade = G.GradeString AND R.GradingSystem = G.GradeSystem
-                WHERE A.Username=? AND R.CompanyName=? AND R.Suburb=? AND R.Type_column=? AND R.Existing=1
-                  AND (A.Result IS NULL OR A.Result <> 'Sent')
-                GROUP BY R.RID, R.Grade, R.Colour, R.Location, R.GradingSystem, G.GradeOrder, A.Mode_column
-                HAVING MAX(A.Result) IS NULL OR MAX(A.Result) <> 'Sent'
-                ORDER BY G.GradeOrder DESC, {mode_priority}, R.RID, MaxAttemptNo DESC
+                JOIN Grades G ON R.Grade = G.Grade AND R.GradingSystem = G.GradingSystem
+                OUTER APPLY (
+                    SELECT TOP 1 A2.Result AS BestResult
+                    FROM Attempts A2
+                    JOIN Results RS ON A2.Result = RS.Result
+                    WHERE A2.Username = A.Username
+                      AND A2.RID = A.RID
+                      AND A2.Mode_column = A.Mode_column
+                    ORDER BY RS.ResultOrder DESC
+                ) AS BestAttempt
+                WHERE A.Username=?
+                  AND R.CompanyName=?
+                  AND R.Suburb=?
+                  AND R.Type_column=?
+                  AND R.Existing=1
+                  AND NOT EXISTS (
+                    SELECT 1 FROM Attempts A2
+                    WHERE A2.Username = A.Username
+                      AND A2.RID = A.RID
+                      AND A2.Mode_column = A.Mode_column
+                      AND A2.Result = 'Sent'
+                  )
+                GROUP BY
+                    R.RID,
+                    R.Grade,
+                    R.Colour,
+                    R.Location,
+                    R.GradingSystem,
+                    G.GradeOrder,
+                    A.Mode_column,
+                    BestAttempt.BestResult
+                ORDER BY
+                    G.GradeOrder DESC,
+                    {mode_priority},
+                    R.RID,
+                    Attempts DESC
             """
             attempts = db.fetch_all(sql, (username, company, suburb, type_column))
-            # Convert date/time to string for JSON serialization
             for attempt in attempts:
-                if 'LastDate' in attempt and attempt['LastDate'] is not None:
-                    attempt['LastDate'] = str(attempt['LastDate'])
-                if 'LastTime' in attempt and attempt['LastTime'] is not None:
-                    attempt['LastTime'] = str(attempt['LastTime'])
+                if 'LastAttempt' in attempt and attempt['LastAttempt'] is not None:
+                    attempt['LastAttempt'] = str(attempt['LastAttempt'])
             return func.HttpResponse(
                 json.dumps({'projects': attempts}),
                 status_code=200,
                 mimetype='application/json',
                 headers=CORS_HEADERS
             )
-        # All attempts sorted by difficulty for user at location
+        # All attempts sorted by difficulty for user on all current routes (all locations)
         elif req.params.get('dashboard') == 'all_attempts_sorted':
             username = req.params.get('username')
             company = req.params.get('company')
             suburb = req.params.get('suburb')
-            location = req.params.get('location')
             type_column = req.params.get('type_column')
-            if not (username and company and suburb and location and type_column):
+            if not (username and company and suburb and type_column):
                 return func.HttpResponse(
                     json.dumps({'error': 'Missing required parameters'}),
                     status_code=400,
@@ -132,14 +165,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 )
             mode_priority = "CASE WHEN A.Mode_column = 'Lead' THEN 1 WHEN A.Mode_column = 'Top Rope' THEN 2 WHEN A.Mode_column = 'Auto-belay' THEN 3 ELSE 4 END"
             sql = f"""
-                SELECT R.RID, R.Grade, R.Colour, G.GradeOrder, A.Mode_column, A.AttemptNo, A.Result, A.Notes, A.Date_column, A.Time_column
+                SELECT R.RID, R.Grade, R.Colour, R.Location, G.GradeOrder, A.Mode_column, A.AttemptNo, A.Result, A.Notes, A.Date_column, A.Time_column
                 FROM Attempts A
                 JOIN Routes R ON A.RID = R.RID
-                JOIN Grades G ON R.Grade = G.GradeString AND R.GradingSystem = G.GradeSystem
-                WHERE A.Username=? AND R.CompanyName=? AND R.Suburb=? AND R.Location=? AND R.Type_column=? AND R.Existing=1
+                JOIN Grades G ON R.Grade = G.Grade AND R.GradingSystem = G.GradingSystem
+                WHERE A.Username=? AND R.CompanyName=? AND R.Suburb=? AND R.Type_column=? AND R.Existing=1
                 ORDER BY G.GradeOrder DESC, R.RID, {mode_priority}, A.AttemptNo DESC
             """
-            attempts = db.fetch_all(sql, (username, company, suburb, location, type_column))
+            attempts = db.fetch_all(sql, (username, company, suburb, type_column))
             for attempt in attempts:
                 if 'Date_column' in attempt and attempt['Date_column'] is not None:
                     attempt['Date_column'] = str(attempt['Date_column'])

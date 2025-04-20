@@ -155,6 +155,57 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 )
             sql = "SELECT Location, Type as ClimbType FROM Locations WHERE CompanyName=? AND Suburb=? ORDER BY Location"
             results = db.fetch_all(sql, (company, suburb))
+        elif entity == 'grades':
+            # Requires: company, suburb, climbType
+            if not (company and suburb and req.params.get('climbType')):
+                return func.HttpResponse(
+                    json.dumps({'error': 'company, suburb, and climbType are required for grades'}),
+                    status_code=400,
+                    mimetype='application/json',
+                    headers=CORS_HEADERS
+                )
+            climb_type = req.params.get('climbType')
+            # Determine grading system
+            if climb_type.lower() == 'boulder':
+                sql_gs = "SELECT BoulderGradeSystem FROM Companys WHERE CompanyName=?"
+                gs_row = db.fetch_all(sql_gs, (company,))
+                grading_system = gs_row[0]['BoulderGradeSystem'] if gs_row else None
+            else:
+                sql_gs = "SELECT SportGradeSystem FROM Companys WHERE CompanyName=?"
+                gs_row = db.fetch_all(sql_gs, (company,))
+                grading_system = gs_row[0]['SportGradeSystem'] if gs_row else None
+            if not grading_system:
+                return func.HttpResponse(
+                    json.dumps({'error': f'Could not determine grading system for company {company} and type {climb_type}'}),
+                    status_code=400,
+                    mimetype='application/json',
+                    headers=CORS_HEADERS
+                )
+            sql = "SELECT Grade, GradeOrder FROM Grades WHERE GradingSystem=? ORDER BY GradeOrder"
+            results = db.fetch_all(sql, (grading_system,))
+            return func.HttpResponse(
+                json.dumps({'results': results}),
+                status_code=200,
+                mimetype='application/json',
+                headers=CORS_HEADERS
+            )
+        elif entity == 'colours':
+            # Requires: company
+            if not company:
+                return func.HttpResponse(
+                    json.dumps({'error': 'company is required for colours'}),
+                    status_code=400,
+                    mimetype='application/json',
+                    headers=CORS_HEADERS
+                )
+            sql = "SELECT Colour FROM Colours WHERE CompanyName=? ORDER BY Colour"
+            results = db.fetch_all(sql, (company,))
+            return func.HttpResponse(
+                json.dumps({'results': results}),
+                status_code=200,
+                mimetype='application/json',
+                headers=CORS_HEADERS
+            )
         elif entity == 'mode':
             sql = "SELECT Mode_column FROM Modes ORDER BY Mode_column"
             results = db.fetch_all(sql)

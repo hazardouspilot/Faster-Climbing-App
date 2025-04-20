@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AddAttemptModal from './AddAttemptModal';
 
 const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
@@ -39,9 +39,9 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
               <th>Colour</th>
               <th>Location</th>
               <th>Mode</th>
-              <th>Highest Attempt</th>
-              <th>Last Attempt Date</th>
-              <th>Last Attempt Time</th>
+              <th>Attempts</th>
+              <th>Last Attempt</th>
+              <th>Best Result</th>
             </tr>
           </thead>
           <tbody>
@@ -51,9 +51,9 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
                 <td>{p.Colour}</td>
                 <td>{p.Location}</td>
                 <td>{p.Mode_column}</td>
-                <td>{p.MaxAttemptNo}</td>
-                <td>{p.LastDate}</td>
-                <td>{p.LastTime}</td>
+                <td>{p.Attempts}</td>
+                <td>{p.LastAttempt}</td>
+                <td>{p.BestResult}</td>
               </tr>
             ))}
           </tbody>
@@ -62,6 +62,62 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
     </div>
   );
 };
+
+function AddRouteModal({ open, onClose, onSubmit, grades, colors, loading, error }) {
+  const [grade, setGrade] = useState('');
+  const [color, setColor] = useState('');
+  const [numberHolds, setNumberHolds] = useState('');
+  const initialFocus = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      setGrade('');
+      setColor('');
+      setNumberHolds('');
+      if (initialFocus.current) initialFocus.current.focus();
+    }
+  }, [open]);
+
+  if (!open) return null;
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.4)', zIndex: 1000 }}>
+      <div style={{ background: '#fff', maxWidth: 400, margin: '80px auto', padding: 24, borderRadius: 8, boxShadow: '0 2px 12px #0002' }}>
+        <h3>Add New Route</h3>
+        {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
+        <form onSubmit={e => { e.preventDefault(); onSubmit({ grade, color, numberHolds }); }}>
+          <div style={{ marginBottom: 12 }}>
+            <label>Grade:<br/>
+              <select ref={initialFocus} value={grade} onChange={e => setGrade(e.target.value)} required style={{ width: '100%' }}>
+                <option value="">Select Grade</option>
+                {grades.map(g => <option key={g.Grade} value={g.Grade}>{g.Grade}</option>)}
+              </select>
+            </label>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Colour:<br/>
+              <select value={color} onChange={e => setColor(e.target.value)} required style={{ width: '100%' }}>
+                <option value="">Select Colour</option>
+                {colors.map(c => <option key={c.Colour} value={c.Colour}>{c.Colour}</option>)}
+              </select>
+            </label>
+          </div>
+          {/* Show Number of Holds if Boulder */}
+          {grades.length > 0 && colors.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <label>Number of Holds (Boulder only):<br/>
+                <input type="number" min="0" value={numberHolds} onChange={e => setNumberHolds(e.target.value)} style={{ width: '100%' }} />
+              </label>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button type="button" onClick={onClose}>Cancel</button>
+            <button type="submit" disabled={loading}>{loading ? 'Adding...' : 'Add Route'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function RoutesByLocation({ username }) {
   const [company, setCompany] = useState('');
@@ -82,6 +138,11 @@ function RoutesByLocation({ username }) {
   const [userAttempts, setUserAttempts] = useState([]);
   const [attemptsLoading, setAttemptsLoading] = useState(false);
   const [sortedAttempts, setSortedAttempts] = useState([]);
+  const [addRouteOpen, setAddRouteOpen] = useState(false);
+  const [grades, setGrades] = useState([]);
+  const [colors, setColors] = useState([]);
+  const [addRouteLoading, setAddRouteLoading] = useState(false);
+  const [addRouteError, setAddRouteError] = useState('');
 
   // Fetch companies on mount
   useEffect(() => {
@@ -173,12 +234,11 @@ function RoutesByLocation({ username }) {
     }
   }, [company, suburb, location, climbType, username]);
 
-  // Fetch all sorted attempts for dashboard display at the bottom
+  // Fetch all sorted attempts for dashboard display at the bottom (all locations)
   useEffect(() => {
     if (
       company &&
       suburb &&
-      location &&
       climbType &&
       username
     ) {
@@ -187,7 +247,7 @@ function RoutesByLocation({ username }) {
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
-        )}&location=${encodeURIComponent(location)}&type_column=${encodeURIComponent(
+        )}&type_column=${encodeURIComponent(
           climbType
         )}`
       )
@@ -201,7 +261,30 @@ function RoutesByLocation({ username }) {
     } else {
       setSortedAttempts([]);
     }
-  }, [company, suburb, location, climbType, username]);
+  }, [company, suburb, climbType, username]);
+
+  // Fetch grades/colors when addRouteOpen is triggered
+  useEffect(() => {
+    if (addRouteOpen && company && suburb && climbType) {
+      setAddRouteError('');
+      setGrades([]);
+      setColors([]);
+      // Fetch grades
+      fetch(`http://localhost:7071/api/misc_additions?entity=grades&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(climbType)}`, {
+        headers: { 'X-Username': username }
+      })
+        .then(res => res.json())
+        .then(data => setGrades((data.results || []).sort((a, b) => a.GradeOrder - b.GradeOrder)))
+        .catch(() => setGrades([]));
+      // Fetch colors
+      fetch(`http://localhost:7071/api/misc_additions?entity=colours&company=${encodeURIComponent(company)}`, {
+        headers: { 'X-Username': username }
+      })
+        .then(res => res.json())
+        .then(data => setColors(data.results || []))
+        .catch(() => setColors([]));
+    }
+  }, [addRouteOpen, company, suburb, climbType]);
 
   // Filter locations by selected climb type
   const filteredLocations = climbType
@@ -282,6 +365,41 @@ function RoutesByLocation({ username }) {
     }
   };
 
+  const handleAddRoute = async ({ grade, color, numberHolds }) => {
+    setAddRouteLoading(true);
+    setAddRouteError('');
+    try {
+      const routeObj = {
+        companyName: company,
+        suburb,
+        location,
+        type_column: climbType,
+        grade,
+        colour: color,
+        numberHolds: climbType === 'Boulder' ? Number(numberHolds) : undefined,
+      };
+      const body = {
+        action: 'add',
+        routes: [routeObj],
+      };
+      const res = await fetch('http://localhost:7071/api/routes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Username': username,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('Failed to add route');
+      setAddRouteOpen(false);
+      await fetchRoutes();
+    } catch (e) {
+      setAddRouteError(e.message);
+    } finally {
+      setAddRouteLoading(false);
+    }
+  };
+
   return (
     <div>
       {/* Projects Dashboard at the top */}
@@ -341,6 +459,13 @@ function RoutesByLocation({ username }) {
       </div>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
+      {(company && suburb && climbType && location && !loading) && (
+        <div style={{ margin: '16px 0' }}>
+          <button onClick={() => setAddRouteOpen(true)} disabled={loading}>
+            Add New Route
+          </button>
+        </div>
+      )}
       <table border="1" cellPadding="4" style={{ width: '100%', marginTop: 16 }}>
         <thead>
           <tr>
@@ -399,15 +524,16 @@ function RoutesByLocation({ username }) {
           </table>
         </div>
       )}
-      {/* All attempts sorted by difficulty at the bottom */}
+      {/* All attempts sorted by difficulty at the bottom (all locations) */}
       {sortedAttempts.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h3>All Attempts Sorted by Difficulty</h3>
+          <h3>All Attempts Sorted by Difficulty (All Locations)</h3>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th>Grade</th>
                 <th>Colour</th>
+                <th>Location</th>
                 <th>Mode</th>
                 <th>Attempt No</th>
                 <th>Result</th>
@@ -421,6 +547,7 @@ function RoutesByLocation({ username }) {
                 <tr key={idx}>
                   <td>{a.Grade}</td>
                   <td>{a.Colour}</td>
+                  <td>{a.Location}</td>
                   <td>{a.Mode_column}</td>
                   <td>{a.AttemptNo}</td>
                   <td>{a.Result}</td>
@@ -440,8 +567,17 @@ function RoutesByLocation({ username }) {
         route={selectedRoute || {}}
         defaultAttemptNo={nextAttemptNo}
       />
+      <AddRouteModal
+        open={addRouteOpen}
+        onClose={() => setAddRouteOpen(false)}
+        onSubmit={handleAddRoute}
+        grades={grades}
+        colors={colors}
+        loading={addRouteLoading}
+        error={addRouteError}
+      />
     </div>
   );
-}
+};
 
 export default RoutesByLocation;
