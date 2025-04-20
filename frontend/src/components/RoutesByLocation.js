@@ -1,6 +1,68 @@
 import React, { useState, useEffect } from 'react';
 import AddAttemptModal from './AddAttemptModal';
 
+const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (username && company && suburb && climbType) {
+      setLoading(true);
+      fetch(
+        `http://localhost:7071/api/attempts?dashboard=projects&username=${encodeURIComponent(username)}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}&type_column=${encodeURIComponent(climbType)}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          setProjects(data.projects || []);
+          setLoading(false);
+        })
+        .catch(() => {
+          setProjects([]);
+          setLoading(false);
+        });
+    } else {
+      setProjects([]);
+    }
+  }, [username, company, suburb, climbType]);
+
+  if (!username || !company || !suburb || !climbType) {
+    return <div style={{ margin: 24 }}><h2>Projects</h2><div>Select a Company, Gym and Climb Type to see your Projects</div></div>;
+  }
+  return (
+    <div style={{ margin: 24 }}>
+      <h2>Projects</h2>
+      {loading ? <div>Loading...</div> : projects.length === 0 ? <div>No projects found.</div> : (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th>Grade</th>
+              <th>Colour</th>
+              <th>Location</th>
+              <th>Mode</th>
+              <th>Highest Attempt</th>
+              <th>Last Attempt Date</th>
+              <th>Last Attempt Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {projects.map((p, idx) => (
+              <tr key={idx}>
+                <td>{p.Grade}</td>
+                <td>{p.Colour}</td>
+                <td>{p.Location}</td>
+                <td>{p.Mode_column}</td>
+                <td>{p.MaxAttemptNo}</td>
+                <td>{p.LastDate}</td>
+                <td>{p.LastTime}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
 function RoutesByLocation({ username }) {
   const [company, setCompany] = useState('');
   const [suburb, setSuburb] = useState('');
@@ -19,6 +81,7 @@ function RoutesByLocation({ username }) {
   const [nextAttemptNo, setNextAttemptNo] = useState(1);
   const [userAttempts, setUserAttempts] = useState([]);
   const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [sortedAttempts, setSortedAttempts] = useState([]);
 
   // Fetch companies on mount
   useEffect(() => {
@@ -110,6 +173,36 @@ function RoutesByLocation({ username }) {
     }
   }, [company, suburb, location, climbType, username]);
 
+  // Fetch all sorted attempts for dashboard display at the bottom
+  useEffect(() => {
+    if (
+      company &&
+      suburb &&
+      location &&
+      climbType &&
+      username
+    ) {
+      fetch(
+        `http://localhost:7071/api/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
+          username
+        )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
+          suburb
+        )}&location=${encodeURIComponent(location)}&type_column=${encodeURIComponent(
+          climbType
+        )}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          setSortedAttempts(data.sorted_attempts || []);
+        })
+        .catch(() => {
+          setSortedAttempts([]);
+        });
+    } else {
+      setSortedAttempts([]);
+    }
+  }, [company, suburb, location, climbType, username]);
+
   // Filter locations by selected climb type
   const filteredLocations = climbType
     ? locations.filter(l => l.climbType === climbType)
@@ -191,6 +284,8 @@ function RoutesByLocation({ username }) {
 
   return (
     <div>
+      {/* Projects Dashboard at the top */}
+      <ProjectsDashboard username={username} company={company} suburb={suburb} climbType={climbType} />
       <h2>View & Manage Routes by Location</h2>
       <div style={{ marginBottom: 16 }}>
         <select
@@ -272,6 +367,7 @@ function RoutesByLocation({ username }) {
           ))}
         </tbody>
       </table>
+      {/* Previous Attempts at this Location */}
       {userAttempts.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <h3>Your Previous Attempts at this Location</h3>
@@ -293,6 +389,40 @@ function RoutesByLocation({ username }) {
                   <td>{a.Grade}</td>
                   <td>{a.Colour}</td>
                   <td>{a.Mode_column}</td>
+                  <td>{a.Result}</td>
+                  <td>{a.Notes}</td>
+                  <td>{a.Date_column}</td>
+                  <td>{a.Time_column}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {/* All attempts sorted by difficulty at the bottom */}
+      {sortedAttempts.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <h3>All Attempts Sorted by Difficulty</h3>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th>Grade</th>
+                <th>Colour</th>
+                <th>Mode</th>
+                <th>Attempt No</th>
+                <th>Result</th>
+                <th>Comments</th>
+                <th>Date</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedAttempts.map((a, idx) => (
+                <tr key={idx}>
+                  <td>{a.Grade}</td>
+                  <td>{a.Colour}</td>
+                  <td>{a.Mode_column}</td>
+                  <td>{a.AttemptNo}</td>
                   <td>{a.Result}</td>
                   <td>{a.Notes}</td>
                   <td>{a.Date_column}</td>
