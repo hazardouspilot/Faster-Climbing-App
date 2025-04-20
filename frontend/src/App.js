@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./App.css"; // Import CSS file for styling
-import Users from "./components/Users";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import RoutesByLocation from "./components/RoutesByLocation";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -41,7 +41,6 @@ function App() {
           </div>
         )}
       </header>
-
       <main>
         {!user ? (
           <div className="auth-container">
@@ -71,8 +70,8 @@ function App() {
           <div className="dashboard">
             <h2>Dashboard</h2>
             <p>Welcome to your climbing logbook!</p>
-            {/* Display Users component only when logged in */}
-            <Users />
+            <br></br>
+            <RoutesByLocation username={user.username} />
           </div>
         )}
       </main>

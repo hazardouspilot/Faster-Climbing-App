@@ -14,16 +14,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # Simple auth: require X-Username header
     username = req.headers.get('x-username')
-    if not username:
-        return func.HttpResponse(
-            json.dumps({'error': 'Authentication required'}),
-            status_code=401,
-            mimetype='application/json',
-            headers=CORS_HEADERS
-        )
 
     if req.method == 'OPTIONS':
-        return func.HttpResponse("", status_code=204, headers=CORS_HEADERS)
+        return func.HttpResponse("", status_code=200, headers=CORS_HEADERS)
 
     if req.method == 'GET':
         # Query params: company, suburb, location, type_column
@@ -32,10 +25,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         location = req.params.get('location')
         type_column = req.params.get('type_column')
         # Only show non-archived (Existing=1)
-        sql = ("SELECT RID, CreationDate, CompanyName, Suburb, Location, Grade, Type_column, Colour, NumberHolds "
+        sql = ("SELECT RID, CreationDate, CompanyName, Suburb, Location, GradingSystem, Grade, Type_column, Colour, NumberHolds "
                "FROM Routes WHERE Existing=1 AND CompanyName=? AND Suburb=? AND Location=? AND Type_column=?")
         try:
             routes = db.fetch_all(sql, (company, suburb, location, type_column))
+            # Convert date objects to string for JSON serialization
+            for route in routes:
+                if 'CreationDate' in route and route['CreationDate'] is not None:
+                    route['CreationDate'] = str(route['CreationDate'])
             return func.HttpResponse(
                 json.dumps({'routes': routes}),
                 status_code=200,
@@ -52,6 +49,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
 
     if req.method == 'POST':
+        username = req.headers.get('x-username')
+        if not username:
+            return func.HttpResponse(
+                json.dumps({'error': 'Authentication required'}),
+                status_code=401,
+                mimetype='application/json',
+                headers=CORS_HEADERS
+            )
         try:
             req_body = req.get_json()
             action = req_body.get('action', '').lower()
@@ -88,17 +93,37 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         mimetype='application/json',
                         headers=CORS_HEADERS
                     )
-                sql = ("INSERT INTO Routes (CreationDate, CompanyName, Suburb, Location, Grade, Type_column, Colour, NumberHolds, Existing) "
-                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)")
+                # Prepare SQL for inserting with GradingSystem
+                sql = ("INSERT INTO Routes (CreationDate, CompanyName, Suburb, Location, GradingSystem, Grade, Type_column, Colour, NumberHolds, Existing) "
+                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)")
                 inserted = 0
                 for route in routes:
+                    # Infer GradingSystem from Company and type_column
+                    company_name = route.get('companyName')
+                    type_col = route.get('type_column')
+                    if type_col and type_col.lower() == 'boulder':
+                        sql_gs = "SELECT BoulderGradeSystem FROM Companys WHERE CompanyName=?"
+                        gs_row = db.fetch_all(sql_gs, (company_name,))
+                        grading_system = gs_row[0]['BoulderGradeSystem'] if gs_row else None
+                    else:
+                        sql_gs = "SELECT SportGradeSystem FROM Companys WHERE CompanyName=?"
+                        gs_row = db.fetch_all(sql_gs, (company_name,))
+                        grading_system = gs_row[0]['SportGradeSystem'] if gs_row else None
+                    if not grading_system:
+                        return func.HttpResponse(
+                            json.dumps({'error': f'Could not determine grading system for company {company_name} and type {type_col}'}),
+                            status_code=400,
+                            mimetype='application/json',
+                            headers=CORS_HEADERS
+                        )
                     db.execute(sql, (
                         route.get('creationDate'),
-                        route.get('companyName'),
+                        company_name,
                         route.get('suburb'),
                         route.get('location'),
+                        grading_system,
                         route.get('grade'),
-                        route.get('type_column'),
+                        type_col,
                         route.get('colour'),
                         route.get('numberHolds', 0)
                     ))

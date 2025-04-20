@@ -8,7 +8,7 @@ import hashlib
 CORS_HEADERS = {
     'Access-Control-Allow-Origin': 'http://localhost:3000',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Username'
 }
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -18,7 +18,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Preflight request
         return func.HttpResponse(
             "",
-            status_code=204,
+            status_code=200,
             headers=CORS_HEADERS
         )
     
