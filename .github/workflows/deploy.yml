@@ -33,7 +33,7 @@ jobs:
           app_location: "frontend"
           api_location: "api"
           output_location: "build"
-          skip_app_build: true
+          # skip_app_build: true
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_NAME: ${{ secrets.DB_NAME }}
