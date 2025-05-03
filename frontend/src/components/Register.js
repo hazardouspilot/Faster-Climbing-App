@@ -45,9 +45,9 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:7071/api/register_users", {
+      const response = await fetch("/api/register_users", {
+        // changed from http://localhost:7071/api/register_users for deployment
         method: "POST",
-        // mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },

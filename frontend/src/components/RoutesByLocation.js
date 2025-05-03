@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import AddAttemptModal from './AddAttemptModal';
+import React, { useState, useEffect, useRef } from "react";
+import AddAttemptModal from "./AddAttemptModal";
 
 const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
   const [projects, setProjects] = useState([]);
@@ -9,8 +9,12 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
     if (username && company && suburb && climbType) {
       setLoading(true);
       fetch(
-        `http://localhost:7071/api/attempts?dashboard=projects&username=${encodeURIComponent(username)}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}&type_column=${encodeURIComponent(climbType)}`
-      )
+        `/api/attempts?dashboard=projects&username=${encodeURIComponent(
+          username
+        )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
+          suburb
+        )}&type_column=${encodeURIComponent(climbType)}`
+      ) // changed from http://localhost:7071/api/attempts for deployment
         .then((res) => res.json())
         .then((data) => {
           setProjects(data.projects || []);
@@ -26,12 +30,21 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
   }, [username, company, suburb, climbType]);
 
   if (!username || !company || !suburb || !climbType) {
-    return <div style={{ margin: 24 }}><h2>Projects</h2><div>Select a Company, Gym and Climb Type to see your Projects</div></div>;
+    return (
+      <div style={{ margin: 24 }}>
+        <h2>Projects</h2>
+        <div>Select a Company, Gym and Climb Type to see your Projects</div>
+      </div>
+    );
   }
   return (
     <div style={{ margin: 24 }}>
       <h2>Projects</h2>
-      {loading ? <div>Loading...</div> : projects.length === 0 ? <div>No projects found.</div> : (
+      {loading ? (
+        <div>Loading...</div>
+      ) : projects.length === 0 ? (
+        <div>No projects found.</div>
+      ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -63,55 +76,122 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
   );
 };
 
-function AddRouteModal({ open, onClose, onSubmit, grades, colors, loading, error }) {
-  const [grade, setGrade] = useState('');
-  const [color, setColor] = useState('');
-  const [numberHolds, setNumberHolds] = useState('');
+function AddRouteModal({
+  open,
+  onClose,
+  onSubmit,
+  grades,
+  colors,
+  loading,
+  error,
+}) {
+  const [grade, setGrade] = useState("");
+  const [color, setColor] = useState("");
+  const [numberHolds, setNumberHolds] = useState("");
   const initialFocus = useRef(null);
 
   useEffect(() => {
     if (open) {
-      setGrade('');
-      setColor('');
-      setNumberHolds('');
+      setGrade("");
+      setColor("");
+      setNumberHolds("");
       if (initialFocus.current) initialFocus.current.focus();
     }
   }, [open]);
 
   if (!open) return null;
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.4)', zIndex: 1000 }}>
-      <div style={{ background: '#fff', maxWidth: 400, margin: '80px auto', padding: 24, borderRadius: 8, boxShadow: '0 2px 12px #0002' }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        background: "rgba(0,0,0,0.4)",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          maxWidth: 400,
+          margin: "80px auto",
+          padding: 24,
+          borderRadius: 8,
+          boxShadow: "0 2px 12px #0002",
+        }}
+      >
         <h3>Add New Route</h3>
-        {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
-        <form onSubmit={e => { e.preventDefault(); onSubmit({ grade, color, numberHolds }); }}>
+        {error && <div style={{ color: "red", marginBottom: 8 }}>{error}</div>}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit({ grade, color, numberHolds });
+          }}
+        >
           <div style={{ marginBottom: 12 }}>
-            <label>Grade:<br/>
-              <select ref={initialFocus} value={grade} onChange={e => setGrade(e.target.value)} required style={{ width: '100%' }}>
+            <label>
+              Grade:
+              <br />
+              <select
+                ref={initialFocus}
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                required
+                style={{ width: "100%" }}
+              >
                 <option value="">Select Grade</option>
-                {grades.map(g => <option key={g.Grade} value={g.Grade}>{g.Grade}</option>)}
+                {grades.map((g) => (
+                  <option key={g.Grade} value={g.Grade}>
+                    {g.Grade}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
           <div style={{ marginBottom: 12 }}>
-            <label>Colour:<br/>
-              <select value={color} onChange={e => setColor(e.target.value)} required style={{ width: '100%' }}>
+            <label>
+              Colour:
+              <br />
+              <select
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                required
+                style={{ width: "100%" }}
+              >
                 <option value="">Select Colour</option>
-                {colors.map(c => <option key={c.Colour} value={c.Colour}>{c.Colour}</option>)}
+                {colors.map((c) => (
+                  <option key={c.Colour} value={c.Colour}>
+                    {c.Colour}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
           {/* Show Number of Holds if Boulder */}
           {grades.length > 0 && colors.length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <label>Number of Holds (Boulder only):<br/>
-                <input type="number" min="0" value={numberHolds} onChange={e => setNumberHolds(e.target.value)} style={{ width: '100%' }} />
+              <label>
+                Number of Holds (Boulder only):
+                <br />
+                <input
+                  type="number"
+                  min="0"
+                  value={numberHolds}
+                  onChange={(e) => setNumberHolds(e.target.value)}
+                  style={{ width: "100%" }}
+                />
               </label>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button type="button" onClick={onClose}>Cancel</button>
-            <button type="submit" disabled={loading}>{loading ? 'Adding...' : 'Add Route'}</button>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button type="button" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}>
+              {loading ? "Adding..." : "Add Route"}
+            </button>
           </div>
         </form>
       </div>
@@ -120,16 +200,16 @@ function AddRouteModal({ open, onClose, onSubmit, grades, colors, loading, error
 }
 
 function RoutesByLocation({ username }) {
-  const [company, setCompany] = useState('');
-  const [suburb, setSuburb] = useState('');
-  const [climbType, setClimbType] = useState('');
+  const [company, setCompany] = useState("");
+  const [suburb, setSuburb] = useState("");
+  const [climbType, setClimbType] = useState("");
   const [climbTypes, setClimbTypes] = useState([]);
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState("");
   const [locations, setLocations] = useState([]);
-  const [typeColumn, setTypeColumn] = useState('Sport');
+  const [typeColumn, setTypeColumn] = useState("Sport");
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [companies, setCompanies] = useState([]);
   const [gyms, setGyms] = useState([]);
   const [attemptModalOpen, setAttemptModalOpen] = useState(false);
@@ -142,18 +222,19 @@ function RoutesByLocation({ username }) {
   const [grades, setGrades] = useState([]);
   const [colors, setColors] = useState([]);
   const [addRouteLoading, setAddRouteLoading] = useState(false);
-  const [addRouteError, setAddRouteError] = useState('');
+  const [addRouteError, setAddRouteError] = useState("");
 
   // Fetch companies on mount
   useEffect(() => {
     console.log("Fetching companies with username:", username);
-    fetch('http://localhost:7071/api/misc_additions?entity=company', {
-      headers: { 'X-Username': username }
+    fetch("/api/misc_additions?entity=company", {
+      //http://localhost:7071/api/misc_additions?entity=company
+      headers: { "X-Username": username },
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         console.log("Fetched companies data:", data);
-        setCompanies(data.results.map(r => r.CompanyName));
+        setCompanies(data.results.map((r) => r.CompanyName));
       })
       .catch((err) => {
         console.error("Error fetching companies:", err);
@@ -163,33 +244,44 @@ function RoutesByLocation({ username }) {
 
   // Fetch gyms when company changes
   useEffect(() => {
-    setSuburb('');
+    setSuburb("");
     setGyms([]);
-    setClimbType('');
+    setClimbType("");
     setClimbTypes([]);
-    setLocation('');
+    setLocation("");
     setLocations([]);
     if (company) {
-      fetch(`http://localhost:7071/api/misc_additions?entity=gym&company=${encodeURIComponent(company)}`)
-        .then(res => res.json())
-        .then(data => setGyms(data.results.map(r => r.Suburb)))
+      fetch(
+        `/api/misc_additions?entity=gym&company=${encodeURIComponent(company)}`
+      ) // http://localhost:7071/api/misc_additions?entity=gym&company=${encodeURIComponent(company)}
+        .then((res) => res.json())
+        .then((data) => setGyms(data.results.map((r) => r.Suburb)))
         .catch(() => setGyms([]));
     }
   }, [company]);
 
   // Fetch climb types and locations when suburb changes
   useEffect(() => {
-    setClimbType('');
+    setClimbType("");
     setClimbTypes([]);
-    setLocation('');
+    setLocation("");
     setLocations([]);
     if (company && suburb) {
-      fetch(`http://localhost:7071/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}`)
-        .then(res => res.json())
-        .then(data => {
-          const types = data.climbtypes.map(t => t.ClimbType);
+      fetch(
+        `/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(
+          company
+        )}&suburb=${encodeURIComponent(suburb)}`
+      ) //http://localhost:7071/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}
+        .then((res) => res.json())
+        .then((data) => {
+          const types = data.climbtypes.map((t) => t.ClimbType);
           setClimbTypes(types);
-          setLocations(data.locations.map(l => ({ name: l.Location, climbType: l.ClimbType })));
+          setLocations(
+            data.locations.map((l) => ({
+              name: l.Location,
+              climbType: l.ClimbType,
+            }))
+          );
           if (types.length === 1) {
             setClimbType(types[0]);
           }
@@ -203,22 +295,17 @@ function RoutesByLocation({ username }) {
 
   // Fetch attempts for all current routes at location for this user
   useEffect(() => {
-    if (
-      company &&
-      suburb &&
-      location &&
-      climbType &&
-      username
-    ) {
+    if (company && suburb && location && climbType && username) {
       setAttemptsLoading(true);
       fetch(
-        `http://localhost:7071/api/attempts?username=${encodeURIComponent(
+        `/api/attempts?username=${encodeURIComponent(
+          // changed from http://localhost:7071/api/attempts
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
-        )}&location=${encodeURIComponent(location)}&type_column=${encodeURIComponent(
-          climbType
-        )}`
+        )}&location=${encodeURIComponent(
+          location
+        )}&type_column=${encodeURIComponent(climbType)}`
       )
         .then((res) => res.json())
         .then((data) => {
@@ -236,20 +323,14 @@ function RoutesByLocation({ username }) {
 
   // Fetch all sorted attempts for dashboard display at the bottom (all locations)
   useEffect(() => {
-    if (
-      company &&
-      suburb &&
-      climbType &&
-      username
-    ) {
+    if (company && suburb && climbType && username) {
       fetch(
-        `http://localhost:7071/api/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
+        `/api/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
+          // changed from http://localhost:7071/api/attempts
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
-        )}&type_column=${encodeURIComponent(
-          climbType
-        )}`
+        )}&type_column=${encodeURIComponent(climbType)}`
       )
         .then((res) => res.json())
         .then((data) => {
@@ -266,34 +347,50 @@ function RoutesByLocation({ username }) {
   // Fetch grades/colors when addRouteOpen is triggered
   useEffect(() => {
     if (addRouteOpen && company && suburb && climbType) {
-      setAddRouteError('');
+      setAddRouteError("");
       setGrades([]);
       setColors([]);
-      // Fetch grades
-      fetch(`http://localhost:7071/api/misc_additions?entity=grades&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(climbType)}`, {
-        headers: { 'X-Username': username }
-      })
-        .then(res => res.json())
-        .then(data => setGrades((data.results || []).sort((a, b) => a.GradeOrder - b.GradeOrder)))
+      // Fetch grades - URL changed from http://localhost:7071/api/misc_additions?entity=grades
+      fetch(
+        `/api/misc_additions?entity=grades&company=${encodeURIComponent(
+          company
+        )}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(
+          climbType
+        )}`,
+        {
+          headers: { "X-Username": username },
+        }
+      )
+        .then((res) => res.json())
+        .then((data) =>
+          setGrades(
+            (data.results || []).sort((a, b) => a.GradeOrder - b.GradeOrder)
+          )
+        )
         .catch(() => setGrades([]));
-      // Fetch colors
-      fetch(`http://localhost:7071/api/misc_additions?entity=colours&company=${encodeURIComponent(company)}`, {
-        headers: { 'X-Username': username }
-      })
-        .then(res => res.json())
-        .then(data => setColors(data.results || []))
+      // Fetch colors - URL changed from http://localhost:7071/api/misc_additions?entity=colours
+      fetch(
+        `/api/misc_additions?entity=colours&company=${encodeURIComponent(
+          company
+        )}`,
+        {
+          headers: { "X-Username": username },
+        }
+      )
+        .then((res) => res.json())
+        .then((data) => setColors(data.results || []))
         .catch(() => setColors([]));
     }
   }, [addRouteOpen, company, suburb, climbType]);
 
   // Filter locations by selected climb type
   const filteredLocations = climbType
-    ? locations.filter(l => l.climbType === climbType)
+    ? locations.filter((l) => l.climbType === climbType)
     : locations;
 
   const fetchRoutes = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     setRoutes([]);
     try {
       const params = new URLSearchParams({
@@ -302,10 +399,11 @@ function RoutesByLocation({ username }) {
         location,
         type_column: climbType,
       });
-      const res = await fetch(`http://localhost:7071/api/routes?${params.toString()}`, {
-        headers: { 'X-Username': username },
+      const res = await fetch(`/api/routes?${params.toString()}`, {
+        // changed from http://localhost:7071/api/routes
+        headers: { "X-Username": username },
       });
-      if (!res.ok) throw new Error('Failed to fetch routes');
+      if (!res.ok) throw new Error("Failed to fetch routes");
       const data = await res.json();
       setRoutes(data.routes || []);
     } catch (e) {
@@ -316,18 +414,19 @@ function RoutesByLocation({ username }) {
   };
 
   const archiveRoute = async (rid) => {
-    setError('');
+    setError("");
     try {
       console.log("Archiving route with username:", username);
-      const res = await fetch('http://localhost:7071/api/routes', {
-        method: 'POST',
+      const res = await fetch("/api/routes", {
+        // changed from http://localhost:7071/api/routes
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-Username': username,
+          "Content-Type": "application/json",
+          "X-Username": username,
         },
-        body: JSON.stringify({ action: 'archive', rid }),
+        body: JSON.stringify({ action: "archive", rid }),
       });
-      if (!res.ok) throw new Error('Failed to archive route');
+      if (!res.ok) throw new Error("Failed to archive route");
       await fetchRoutes();
     } catch (e) {
       console.error("Error archiving route:", e);
@@ -344,17 +443,18 @@ function RoutesByLocation({ username }) {
 
   const handleAttemptSubmit = async (attemptData) => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const res = await fetch('http://localhost:7071/api/attempts', {
-        method: 'POST',
+      const res = await fetch("/api/attempts", {
+        // changed from http://localhost:7071/api/attempts
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-Username': username,
+          "Content-Type": "application/json",
+          "X-Username": username,
         },
         body: JSON.stringify(attemptData),
       });
-      if (!res.ok) throw new Error('Failed to add attempt');
+      if (!res.ok) throw new Error("Failed to add attempt");
       setAttemptModalOpen(false);
       setSelectedRoute(null);
       await fetchRoutes();
@@ -367,7 +467,7 @@ function RoutesByLocation({ username }) {
 
   const handleAddRoute = async ({ grade, color, numberHolds }) => {
     setAddRouteLoading(true);
-    setAddRouteError('');
+    setAddRouteError("");
     try {
       const routeObj = {
         companyName: company,
@@ -376,21 +476,22 @@ function RoutesByLocation({ username }) {
         type_column: climbType,
         grade,
         colour: color,
-        numberHolds: climbType === 'Boulder' ? Number(numberHolds) : undefined,
+        numberHolds: climbType === "Boulder" ? Number(numberHolds) : undefined,
       };
       const body = {
-        action: 'add',
+        action: "add",
         routes: [routeObj],
       };
-      const res = await fetch('http://localhost:7071/api/routes', {
-        method: 'POST',
+      const res = await fetch("/api/routes", {
+        // changed from http://localhost:7071/api/routes
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-Username': username,
+          "Content-Type": "application/json",
+          "X-Username": username,
         },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error('Failed to add route');
+      if (!res.ok) throw new Error("Failed to add route");
       setAddRouteOpen(false);
       await fetchRoutes();
     } catch (e) {
@@ -403,90 +504,117 @@ function RoutesByLocation({ username }) {
   return (
     <div>
       {/* Projects Dashboard at the top */}
-      <ProjectsDashboard username={username} company={company} suburb={suburb} climbType={climbType} />
+      <ProjectsDashboard
+        username={username}
+        company={company}
+        suburb={suburb}
+        climbType={climbType}
+      />
       <h2>View & Manage Routes by Location</h2>
       <div style={{ marginBottom: 16 }}>
         <select
           value={company}
-          onChange={e => setCompany(e.target.value)}
+          onChange={(e) => setCompany(e.target.value)}
           style={{ marginRight: 8 }}
         >
           <option value="">Select Company</option>
-          {companies.map(c => (
-            <option key={c} value={c}>{c}</option>
+          {companies.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
           ))}
         </select>
         <select
           value={suburb}
-          onChange={e => setSuburb(e.target.value)}
+          onChange={(e) => setSuburb(e.target.value)}
           style={{ marginRight: 8 }}
           disabled={!company}
         >
           <option value="">Select Gym</option>
-          {gyms.map(g => (
-            <option key={g} value={g}>{g}</option>
+          {gyms.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
           ))}
         </select>
         <select
           value={climbType}
-          onChange={e => setClimbType(e.target.value)}
+          onChange={(e) => setClimbType(e.target.value)}
           style={{ marginRight: 8 }}
           disabled={!suburb || climbTypes.length === 0}
         >
           <option value="">Select Climb Type</option>
-          {climbTypes.map(t => (
-            <option key={t} value={t}>{t}</option>
+          {climbTypes.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
         </select>
         <select
           value={location}
-          onChange={e => setLocation(e.target.value)}
+          onChange={(e) => setLocation(e.target.value)}
           style={{ marginRight: 8 }}
           disabled={!climbType}
         >
           <option value="">Select Location</option>
-          {filteredLocations.map(l => (
-            <option key={l.name} value={l.name}>{l.name}</option>
+          {filteredLocations.map((l) => (
+            <option key={l.name} value={l.name}>
+              {l.name}
+            </option>
           ))}
         </select>
-        <select value={typeColumn} onChange={e => setTypeColumn(e.target.value)} style={{ display: 'none' }}>
+        <select
+          value={typeColumn}
+          onChange={(e) => setTypeColumn(e.target.value)}
+          style={{ display: "none" }}
+        >
           <option value="Sport">Sport</option>
           <option value="Boulder">Boulder</option>
         </select>
-        <button onClick={fetchRoutes} style={{ marginLeft: 12 }} disabled={!(company && suburb && climbType && location)}>
+        <button
+          onClick={fetchRoutes}
+          style={{ marginLeft: 12 }}
+          disabled={!(company && suburb && climbType && location)}
+        >
           Fetch Routes
         </button>
       </div>
       {loading && <div>Loading...</div>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      {(company && suburb && climbType && location && !loading) && (
-        <div style={{ margin: '16px 0' }}>
+      {error && <div style={{ color: "red" }}>{error}</div>}
+      {company && suburb && climbType && location && !loading && (
+        <div style={{ margin: "16px 0" }}>
           <button onClick={() => setAddRouteOpen(true)} disabled={loading}>
             Add New Route
           </button>
         </div>
       )}
-      <table border="1" cellPadding="4" style={{ width: '100%', marginTop: 16 }}>
+      <table
+        border="1"
+        cellPadding="4"
+        style={{ width: "100%", marginTop: 16 }}
+      >
         <thead>
           <tr>
             <th>Grade</th>
             <th>Colour</th>
-            {climbType === 'Boulder' && <th>Num Holds</th>}
+            {climbType === "Boulder" && <th>Num Holds</th>}
             <th>Archive</th>
             <th>Add Attempt</th>
           </tr>
         </thead>
         <tbody>
-          {routes.map(route => (
+          {routes.map((route) => (
             <tr key={route.RID}>
               <td>{route.Grade}</td>
               <td>{route.Colour}</td>
-              {climbType === 'Boulder' && <td>{route.NumberHolds}</td>}
+              {climbType === "Boulder" && <td>{route.NumberHolds}</td>}
               <td>
                 <button onClick={() => archiveRoute(route.RID)}>Archive</button>
               </td>
               <td>
-                <button onClick={() => handleAddAttemptClick(route)}>Add Attempt</button>
+                <button onClick={() => handleAddAttemptClick(route)}>
+                  Add Attempt
+                </button>
               </td>
             </tr>
           ))}
@@ -578,6 +706,6 @@ function RoutesByLocation({ username }) {
       />
     </div>
   );
-};
+}
 
 export default RoutesByLocation;
