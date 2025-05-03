@@ -1,7 +1,7 @@
 import logging
 import json
 import azure.functions as func
-from shared.db import AzureSQLDB
+# from shared.db import AzureSQLDB
 import hashlib
 import uuid
 import os
