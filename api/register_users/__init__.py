@@ -4,11 +4,12 @@ import azure.functions as func
 from shared.db import AzureSQLDB
 import hashlib
 import uuid
+import os
 
-# from shared.cors_middleware import CorsMiddleware
+allowed_origin = os.environ.get('ALLOWED_ORIGIN', '*')
 
 CORS_HEADERS = {
-    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Origin': allowed_origin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Username'
 }
