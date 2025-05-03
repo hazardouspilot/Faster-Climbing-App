@@ -216,7 +216,7 @@ function RoutesByLocation({ username }) {
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [nextAttemptNo, setNextAttemptNo] = useState(1);
   const [userAttempts, setUserAttempts] = useState([]);
-  const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [, setAttemptsLoading] = useState(false);
   const [sortedAttempts, setSortedAttempts] = useState([]);
   const [addRouteOpen, setAddRouteOpen] = useState(false);
   const [grades, setGrades] = useState([]);
@@ -381,7 +381,7 @@ function RoutesByLocation({ username }) {
         .then((data) => setColors(data.results || []))
         .catch(() => setColors([]));
     }
-  }, [addRouteOpen, company, suburb, climbType]);
+  }, [addRouteOpen, company, suburb, climbType, username]);
 
   // Filter locations by selected climb type
   const filteredLocations = climbType
