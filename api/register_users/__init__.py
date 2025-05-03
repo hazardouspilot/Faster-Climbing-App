@@ -27,7 +27,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             headers=CORS_HEADERS
         )
     
-    elif req.method == 'POST':
+    elif req.method == 'POST':        
         try:
             logging.info("Attempting to parse JSON body.")
             # Get request body
