@@ -4,3 +4,9 @@ from host.json
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
     "version": "[4.*, 5.0.0)"
   }
+
+  optional extras in requirements
+
+  
+# werkzeug>=2.0.3
+# MarkupSafe>=2.0.1
