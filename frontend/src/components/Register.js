@@ -45,20 +45,23 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/register_users", {
-        // changed from http://localhost:7071/api/register_users for deployment
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-        }),
-      });
+      const response = await fetch(
+        "https://climbing-backend-functions.azurewebsites.net/api/register_users",
+        {
+          // changed from http://localhost:7071/api/register_users for deployment
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: formData.username,
+            password: formData.password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+          }),
+        }
+      );
 
       const data = await response.json();
 

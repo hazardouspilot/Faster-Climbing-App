@@ -9,7 +9,7 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
     if (username && company && suburb && climbType) {
       setLoading(true);
       fetch(
-        `/api/attempts?dashboard=projects&username=${encodeURIComponent(
+        `https://climbing-backend-functions.azurewebsites.net/api/attempts?dashboard=projects&username=${encodeURIComponent(
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb

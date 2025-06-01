@@ -23,17 +23,20 @@ const Login = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/login_user", {
-        // changed from http://localhost:7071/api/login_user for deployment
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: credentials.username,
-          password: credentials.password,
-        }),
-      });
+      const response = await fetch(
+        "https://climbing-backend-functions.azurewebsites.net/api/login_user",
+        {
+          // changed from http://localhost:7071/api/login_user for deployment
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: credentials.username,
+            password: credentials.password,
+          }),
+        }
+      );
 
       const data = await response.json();
 

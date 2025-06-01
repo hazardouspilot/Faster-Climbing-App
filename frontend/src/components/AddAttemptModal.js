@@ -20,13 +20,17 @@ const AddAttemptModal = ({
 
   useEffect(() => {
     if (open) {
-      fetch("/api/misc_additions?entity=result") // changed from http://localhost:7071/api/misc_additions?entity=result for deployment
+      fetch(
+        "https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=result"
+      ) // changed from http://localhost:7071/api/misc_additions?entity=result for deployment
         .then((res) => res.json())
         .then((data) => {
           setResultOptions(data.results.map((r) => r.Result));
         })
         .catch(() => setResultOptions([]));
-      fetch("/api/misc_additions?entity=mode") // changed from http://localhost:7071/api/misc_additions?entity=mode for deployment
+      fetch(
+        "https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=mode"
+      ) // changed from http://localhost:7071/api/misc_additions?entity=mode for deployment
         .then((res) => res.json())
         .then((data) => {
           setModeOptions(data.results.map((r) => r.Mode_column));
