@@ -2,13 +2,7 @@
 
 import os
 import logging
-
-try:
-    import pymssql
-    logging.info("Successfully imported pymssql")
-except Exception as e:
-    logging.error(f"pymssql import failed: {e}")
-
+import pymssql
 from contextlib import contextmanager
 
 class AzureSQLDB:

@@ -1,6 +1,7 @@
 import logging
 import json
 import azure.functions as func
+import pymssql
 from shared.db_pymssql import AzureSQLDB
 import os
 
