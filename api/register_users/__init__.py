@@ -1,7 +1,7 @@
 import logging
 import json
 import azure.functions as func
-from shared.db import AzureSQLDB
+from shared.db_pymssql import AzureSQLDB
 import hashlib
 import uuid
 import os
@@ -54,7 +54,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             
             # Check if username already exists
             logging.info("Checking if username already exists.")
-            existing_user = db.fetch_all("SELECT Username FROM Climbers WHERE Username = ?", (username,))
+            existing_user = db.fetch_all("SELECT Username FROM Climbers WHERE Username = %s", (username,))
             if existing_user:
                 logging.warning("Username already exists: %s", username)
                 return func.HttpResponse(
@@ -73,7 +73,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             # Insert new user
             logging.info("Inserting new user into database.")
             db.execute(
-                "INSERT INTO Climbers (Username, Pass, FirstName, LastName, Email, Access) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Climbers (Username, Pass, FirstName, LastName, Email, Access) VALUES (%s, %s, %s, %s, %s, %s)",
                 (username, password_with_salt, first_name, last_name, email, 'Regular')
             )
             

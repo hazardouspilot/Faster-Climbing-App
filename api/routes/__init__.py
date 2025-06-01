@@ -1,7 +1,7 @@
 import logging
 import json
 import azure.functions as func
-from shared.db import AzureSQLDB
+from shared.db_pymssql import AzureSQLDB
 import os
 
 allowed_origin = os.environ.get('ALLOWED_ORIGIN', '*')
@@ -29,7 +29,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         type_column = req.params.get('type_column')
         # Only show non-archived (Existing=1)
         sql = ("SELECT RID, CreationDate, CompanyName, Suburb, Location, GradingSystem, Grade, Type_column, Colour, NumberHolds "
-               "FROM Routes WHERE Existing=1 AND CompanyName=? AND Suburb=? AND Location=? AND Type_column=?")
+               "FROM Routes WHERE Existing=1 AND CompanyName=%s AND Suburb=%s AND Location=%s AND Type_column=%s")
         try:
             routes = db.fetch_all(sql, (company, suburb, location, type_column))
             # Convert date objects to string for JSON serialization
@@ -73,7 +73,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         mimetype='application/json',
                         headers=CORS_HEADERS
                     )
-                sql = "UPDATE Routes SET Existing=0 WHERE RID=?"
+                sql = "UPDATE Routes SET Existing=0 WHERE RID=%s"
                 db.execute(sql, (rid,))
                 return func.HttpResponse(
                     json.dumps({'message': f'Route {rid} archived successfully'}),
@@ -98,18 +98,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     )
                 # Prepare SQL for inserting with GradingSystem
                 sql = ("INSERT INTO Routes (CreationDate, CompanyName, Suburb, Location, GradingSystem, Grade, Type_column, Colour, NumberHolds, Existing) "
-                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)")
+                       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 1)")
                 inserted = 0
                 for route in routes:
                     # Infer GradingSystem from Company and type_column
                     company_name = route.get('companyName')
                     type_col = route.get('type_column')
                     if type_col and type_col.lower() == 'boulder':
-                        sql_gs = "SELECT BoulderGradeSystem FROM Companys WHERE CompanyName=?"
+                        sql_gs = "SELECT BoulderGradeSystem FROM Companys WHERE CompanyName=%s"
                         gs_row = db.fetch_all(sql_gs, (company_name,))
                         grading_system = gs_row[0]['BoulderGradeSystem'] if gs_row else None
                     else:
-                        sql_gs = "SELECT SportGradeSystem FROM Companys WHERE CompanyName=?"
+                        sql_gs = "SELECT SportGradeSystem FROM Companys WHERE CompanyName=%s"
                         gs_row = db.fetch_all(sql_gs, (company_name,))
                         grading_system = gs_row[0]['SportGradeSystem'] if gs_row else None
                     if not grading_system:

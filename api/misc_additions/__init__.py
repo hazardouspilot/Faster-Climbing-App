@@ -1,7 +1,7 @@
 import logging
 import json
 import azure.functions as func
-from shared.db import AzureSQLDB
+from shared.db_pymssql import AzureSQLDB
 import os
 
 allowed_origin = os.environ.get('ALLOWED_ORIGIN', '*')
@@ -34,7 +34,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             data = req_body.get('data')
             if entity == 'company':
                 sql = ("INSERT INTO Companys (CompanyName, BoulderGradeSystem, SportGradeSystem, PrimaryCountry) "
-                       "VALUES (?, ?, ?, ?)")
+                       "VALUES (%s, %s, %s, %s)")
                 db.execute(sql, (
                     data.get('companyName'),
                     data.get('boulderGradeSystem'),
@@ -49,7 +49,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 )
             elif entity == 'gym':
                 sql = ("INSERT INTO Gyms (CompanyName, Suburb, City, Country) "
-                       "VALUES (?, ?, ?, ?)")
+                       "VALUES (%s, %s, %s, %s)")
                 db.execute(sql, (
                     data.get('companyName'),
                     data.get('suburb'),
@@ -65,9 +65,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             elif entity == 'location':
                 company_name = req_body.get('companyName')
                 suburb = req_body.get('suburb')
-                locations = data if isinstance(data, list) else [data] #do I need to include type here somehow?
+                locations = data if isinstance(data, list) else [data] #do I need to include type here somehow%s
                 sql = ("INSERT INTO Locations (CompanyName, Suburb, Location, Type) "
-                       "VALUES (?, ?, ?, ?)")
+                       "VALUES (%s, %s, %s, %s)")
                 inserted = 0
                 for loc in locations:
                     db.execute(sql, (
@@ -84,7 +84,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     headers=CORS_HEADERS
                 )
             elif entity == 'colour':
-                sql = ("INSERT INTO Colours (CompanyName, Colour) VALUES (?, ?)")
+                sql = ("INSERT INTO Colours (CompanyName, Colour) VALUES (%s, %s)")
                 db.execute(sql, (
                     data.get('companyName'),
                     data.get('colour')
@@ -125,9 +125,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     mimetype='application/json',
                     headers=CORS_HEADERS
                 )
-            sql = "SELECT DISTINCT Type as ClimbType FROM Locations WHERE CompanyName=? AND Suburb=? ORDER BY Type"
+            sql = "SELECT DISTINCT Type as ClimbType FROM Locations WHERE CompanyName=%s AND Suburb=%s ORDER BY Type"
             climbtypes = db.fetch_all(sql, (company, suburb))
-            sql2 = "SELECT Location, Type as ClimbType FROM Locations WHERE CompanyName=? AND Suburb=? ORDER BY Location"
+            sql2 = "SELECT Location, Type as ClimbType FROM Locations WHERE CompanyName=%s AND Suburb=%s ORDER BY Location"
             locations = db.fetch_all(sql2, (company, suburb))
             return func.HttpResponse(
                 json.dumps({'climbtypes': climbtypes, 'locations': locations}),
@@ -146,7 +146,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     mimetype='application/json',
                     headers=CORS_HEADERS
                 )
-            sql = "SELECT Suburb FROM Gyms WHERE CompanyName=? ORDER BY Suburb"
+            sql = "SELECT Suburb FROM Gyms WHERE CompanyName=%s ORDER BY Suburb"
             results = db.fetch_all(sql, (company,))
         elif entity == 'location':
             if not (company and suburb):
@@ -156,7 +156,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     mimetype='application/json',
                     headers=CORS_HEADERS
                 )
-            sql = "SELECT Location, Type as ClimbType FROM Locations WHERE CompanyName=? AND Suburb=? ORDER BY Location"
+            sql = "SELECT Location, Type as ClimbType FROM Locations WHERE CompanyName=%s AND Suburb=%s ORDER BY Location"
             results = db.fetch_all(sql, (company, suburb))
         elif entity == 'grades':
             # Requires: company, suburb, climbType
@@ -170,11 +170,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             climb_type = req.params.get('climbType')
             # Determine grading system
             if climb_type.lower() == 'boulder':
-                sql_gs = "SELECT BoulderGradeSystem FROM Companys WHERE CompanyName=?"
+                sql_gs = "SELECT BoulderGradeSystem FROM Companys WHERE CompanyName=%s"
                 gs_row = db.fetch_all(sql_gs, (company,))
                 grading_system = gs_row[0]['BoulderGradeSystem'] if gs_row else None
             else:
-                sql_gs = "SELECT SportGradeSystem FROM Companys WHERE CompanyName=?"
+                sql_gs = "SELECT SportGradeSystem FROM Companys WHERE CompanyName=%s"
                 gs_row = db.fetch_all(sql_gs, (company,))
                 grading_system = gs_row[0]['SportGradeSystem'] if gs_row else None
             if not grading_system:
@@ -184,7 +184,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     mimetype='application/json',
                     headers=CORS_HEADERS
                 )
-            sql = "SELECT Grade, GradeOrder FROM Grades WHERE GradingSystem=? ORDER BY GradeOrder"
+            sql = "SELECT Grade, GradeOrder FROM Grades WHERE GradingSystem=%s ORDER BY GradeOrder"
             results = db.fetch_all(sql, (grading_system,))
             return func.HttpResponse(
                 json.dumps({'results': results}),
@@ -201,7 +201,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     mimetype='application/json',
                     headers=CORS_HEADERS
                 )
-            sql = "SELECT Colour FROM Colours WHERE CompanyName=? ORDER BY Colour"
+            sql = "SELECT Colour FROM Colours WHERE CompanyName=%s ORDER BY Colour"
             results = db.fetch_all(sql, (company,))
             return func.HttpResponse(
                 json.dumps({'results': results}),

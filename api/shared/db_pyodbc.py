@@ -1,7 +1,15 @@
 # Database connection logic
 
 import os
-import pyodbc
+import logging
+
+try:
+    import pyodbc
+    logging.info("Successfully imported pyodbc")
+except ImportError as e:
+    logging.error(f"pyodbc import failed: {e}")
+    raise
+
 from contextlib import contextmanager
 
 class AzureSQLDB:

@@ -1,7 +1,7 @@
 import logging
 import json
 import azure.functions as func
-from shared.db import AzureSQLDB
+from shared.db_pymssql import AzureSQLDB
 import os
 
 allowed_origin = os.environ.get('ALLOWED_ORIGIN', '*')
@@ -41,7 +41,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             attempt_no = req_body.get('attemptNo')  # User-selected attempt number
 
             # Fetch current max AttemptNo for this user/route/mode
-            sql_attempt = "SELECT MAX(AttemptNo) as max_attempt FROM Attempts WHERE Username=? AND RID=? AND Mode_column=?"
+            sql_attempt = "SELECT MAX(AttemptNo) as max_attempt FROM Attempts WHERE Username=%s AND RID=%s AND Mode_column=%s"
             row = db.fetch_all(sql_attempt, (username, rid, mode))
             max_attempt = row[0]['max_attempt'] if row and row[0]['max_attempt'] is not None else 0
 
@@ -59,7 +59,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 next_attempt = max_attempt + 1
 
             sql_insert = ("INSERT INTO Attempts (Username, RID, Mode_column, AttemptNo, Date_column, Time_column, Result, Rating, Notes, Video) "
-                          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                          "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
             db.execute(sql_insert, (username, rid, mode, next_attempt, date, time_val, result, rating, notes, video))
             return func.HttpResponse(
                 json.dumps({'message': 'Attempt added', 'attempt_no': next_attempt}),
@@ -116,10 +116,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                       AND A2.Mode_column = A.Mode_column
                     ORDER BY RS.ResultOrder DESC
                 ) AS BestAttempt
-                WHERE A.Username=?
-                  AND R.CompanyName=?
-                  AND R.Suburb=?
-                  AND R.Type_column=?
+                WHERE A.Username=%s
+                  AND R.CompanyName=%s
+                  AND R.Suburb=%s
+                  AND R.Type_column=%s
                   AND R.Existing=1
                   AND NOT EXISTS (
                     SELECT 1 FROM Attempts A2
@@ -172,7 +172,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 FROM Attempts A
                 JOIN Routes R ON A.RID = R.RID
                 JOIN Grades G ON R.Grade = G.Grade AND R.GradingSystem = G.GradingSystem
-                WHERE A.Username=? AND R.CompanyName=? AND R.Suburb=? AND R.Type_column=? AND R.Existing=1
+                WHERE A.Username=%s AND R.CompanyName=%s AND R.Suburb=%s AND R.Type_column=%s AND R.Existing=1
                 ORDER BY G.GradeOrder DESC, R.RID, {mode_priority}, A.AttemptNo DESC
             """
             attempts = db.fetch_all(sql, (username, company, suburb, type_column))
@@ -203,7 +203,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         sql = ("SELECT A.RID, R.Grade, R.Colour, A.Mode_column, A.Result, A.Notes, A.Date_column, A.Time_column "
                "FROM Attempts A "
                "JOIN Routes R ON A.RID = R.RID "
-               "WHERE A.Username=? AND R.CompanyName=? AND R.Suburb=? AND R.Location=? AND R.Type_column=? AND R.Existing=1 "
+               "WHERE A.Username=%s AND R.CompanyName=%s AND R.Suburb=%s AND R.Location=%s AND R.Type_column=%s AND R.Existing=1 "
                "ORDER BY A.Date_column DESC, A.Time_column DESC")
         attempts = db.fetch_all(sql, (username, company, suburb, location, type_column))
         # Convert date/time to string for JSON serialization

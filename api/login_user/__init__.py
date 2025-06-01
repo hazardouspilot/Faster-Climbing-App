@@ -1,7 +1,19 @@
+# login_user/__init__.py
+
 import logging
 import json
 import azure.functions as func
-from shared.db import AzureSQLDB
+import pymssql
+# import pyodbc
+
+try:
+    # from shared.db_pyodbc import AzureSQLDB
+    from shared.db_pymssql import AzureSQLDB
+    logging.info("Shared module loaded")
+
+except Exception as e:
+    logging.error(f"Failed to import AzureSQLDB: {e}")
+
 import hashlib
 import os
 
@@ -14,10 +26,28 @@ CORS_HEADERS = {
 }
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    db = AzureSQLDB()
 
+    logging.info('Python HTTP trigger function processed a request.')
+    logging.info(f"Request method: {req.method}")
+    logging.info(f"Request body: {req.get_body()}")
+
+    try:
+        db = AzureSQLDB()
+        logging.info("Database connection object created successfully")
+    except Exception as db_err:
+        logging.error(f"Failed to initialize DB: {db_err}", exc_info=True)
+        return func.HttpResponse(
+            json.dumps({"error": "Internal server error while initializing DB."}),
+            status_code=500,
+            mimetype="application/json",
+            headers=CORS_HEADERS
+        )
+
+    logging.info("Database connection established")
+ 
     if req.method == 'OPTIONS':
         # Preflight request
+        logging.info("CORS preflight request")
         return func.HttpResponse(
             "",
             status_code=200,
@@ -25,6 +55,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
     
     elif req.method == 'POST':
+        logging.info("Processing POST request for user login")
         try:
             # Get request body
             req_body = req.get_json()
@@ -33,6 +64,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             username = req_body.get('username')
             password = req_body.get('password')
             
+            logging.info(f"Read Username from API call: {username}")
+
             # Validate required fields
             if not username or not password:
                 return func.HttpResponse(
@@ -42,16 +75,26 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     headers=CORS_HEADERS
                 )
             
+            logging.info("Username and password provided, proceeding with authentication")
+
             # Fetch user from database
-            user_data = db.fetch_all("SELECT Username, Pass, FirstName, LastName, Email, Access FROM Climbers WHERE Username = ?", (username,))
+            user_data = db.fetch_all(
+                "SELECT Username, Pass, FirstName, LastName, Email, Access FROM Climbers WHERE Username = %s", (username,)
+                )
+            # user_data = db.fetch_all("SELECT Username, Pass, FirstName, LastName, Email, Access FROM Climbers WHERE Username = ?", (username,))
             
-            if not user_data:
+            if user_data:
+                logging.info(f"Fetched user data from database: {user_data[0]}")  # entire row
+                # Or a specific field, e.g. the email:
+                # logging.info(f"User email: {user_data[0][4]}")
+            else:
+                logging.info("No user found")
                 return func.HttpResponse(
                     json.dumps({"error": "Invalid username"}),
                     status_code=401,
                     mimetype="application/json",
                     headers=CORS_HEADERS
-                )
+                )                
             
             # Verify password
             stored_password = user_data[0]['Pass']
