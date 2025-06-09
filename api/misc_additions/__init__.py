@@ -136,6 +136,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 mimetype='application/json',
                 headers=CORS_HEADERS
             )
+        elif entity == 'grade_system':
+            sql = "SELECT GradingSystem FROM GradeSystems"
+            results = db.fetch_all(sql)
         elif entity == 'company':
             sql = "SELECT CompanyName FROM Companys ORDER BY CompanyName"
             results = db.fetch_all(sql)

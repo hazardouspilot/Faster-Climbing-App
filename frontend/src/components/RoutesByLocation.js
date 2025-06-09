@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import AddAttemptModal from "./AddAttemptModal";
 
 const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
@@ -205,6 +206,7 @@ function AddRouteModal({
 }
 
 function RoutesByLocation({ username }) {
+  const navigate = useNavigate();
   const [company, setCompany] = useState("");
   const [suburb, setSuburb] = useState("");
   const [climbType, setClimbType] = useState("");
@@ -631,6 +633,7 @@ function RoutesByLocation({ username }) {
         >
           Fetch Routes
         </button>
+        <button onClick={() => navigate('/add-gyms')} className="btn btn-info mt-2 ms-2">Add a new gym</button>
       </div>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: "red" }}>{error}</div>}
