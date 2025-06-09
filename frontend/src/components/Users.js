@@ -7,7 +7,7 @@ const Users = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch("https://climbing-backend-functions.azurewebsites.net/api/get_users")
+    fetch(`${process.env.REACT_APP_API_URL}/get_users`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`HTTP error! Status: ${res.status}`);

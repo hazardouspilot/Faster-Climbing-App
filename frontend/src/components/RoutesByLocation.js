@@ -9,7 +9,7 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
     if (username && company && suburb && climbType) {
       setLoading(true);
       fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/attempts?dashboard=projects&username=${encodeURIComponent(
+        `${process.env.REACT_APP_API_URL}/attempts?dashboard=projects&username=${encodeURIComponent(
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
@@ -228,7 +228,7 @@ function RoutesByLocation({ username }) {
   useEffect(() => {
     console.log("Fetching companies with username:", username);
     fetch(
-      "https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=company",
+      `${process.env.REACT_APP_API_URL}/misc_additions?entity=company`,
       {
         //http://localhost:7071/api/misc_additions?entity=company
         headers: { "X-Username": username },
@@ -255,7 +255,7 @@ function RoutesByLocation({ username }) {
     setLocations([]);
     if (company) {
       fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=gym&company=${encodeURIComponent(
+        `${process.env.REACT_APP_API_URL}/misc_additions?entity=gym&company=${encodeURIComponent(
           company
         )}`
       ) // http://localhost:7071/api/misc_additions?entity=gym&company=${encodeURIComponent(company)}
@@ -273,7 +273,7 @@ function RoutesByLocation({ username }) {
     setLocations([]);
     if (company && suburb) {
       fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(
+        `${process.env.REACT_APP_API_URL}/misc_additions?entity=climbtype_location&company=${encodeURIComponent(
           company
         )}&suburb=${encodeURIComponent(suburb)}`
       ) //http://localhost:7071/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}
@@ -303,7 +303,7 @@ function RoutesByLocation({ username }) {
     if (company && suburb && location && climbType && username) {
       setAttemptsLoading(true);
       fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/attempts?username=${encodeURIComponent(
+        `${process.env.REACT_APP_API_URL}/attempts?username=${encodeURIComponent(
           // changed from http://localhost:7071/api/attempts
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
@@ -330,7 +330,7 @@ function RoutesByLocation({ username }) {
   useEffect(() => {
     if (company && suburb && climbType && username) {
       fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
+        `${process.env.REACT_APP_API_URL}/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
           // changed from http://localhost:7071/api/attempts
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
@@ -357,7 +357,7 @@ function RoutesByLocation({ username }) {
       setColors([]);
       // Fetch grades - URL changed from http://localhost:7071/api/misc_additions?entity=grades
       fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=grades&company=${encodeURIComponent(
+        `${process.env.REACT_APP_API_URL}/misc_additions?entity=grades&company=${encodeURIComponent(
           company
         )}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(
           climbType
@@ -375,7 +375,7 @@ function RoutesByLocation({ username }) {
         .catch(() => setGrades([]));
       // Fetch colors - URL changed from http://localhost:7071/api/misc_additions?entity=colours
       fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=colours&company=${encodeURIComponent(
+        `${process.env.REACT_APP_API_URL}/misc_additions?entity=colours&company=${encodeURIComponent(
           company
         )}`,
         {
@@ -405,7 +405,7 @@ function RoutesByLocation({ username }) {
         type_column: climbType,
       });
       const res = await fetch(
-        `https://climbing-backend-functions.azurewebsites.net/api/routes?${params.toString()}`,
+        `${process.env.REACT_APP_API_URL}/routes?${params.toString()}`,
         {
           // changed from http://localhost:7071/api/routes
           headers: { "X-Username": username },
@@ -426,7 +426,7 @@ function RoutesByLocation({ username }) {
     try {
       console.log("Archiving route with username:", username);
       const res = await fetch(
-        "https://climbing-backend-functions.azurewebsites.net/api/routes",
+        `${process.env.REACT_APP_API_URL}/routes`,
         {
           // changed from http://localhost:7071/api/routes
           method: "POST",
@@ -457,7 +457,7 @@ function RoutesByLocation({ username }) {
     setError("");
     try {
       const res = await fetch(
-        "https://climbing-backend-functions.azurewebsites.net/api/attempts",
+        `${process.env.REACT_APP_API_URL}/attempts`,
         {
           // changed from http://localhost:7071/api/attempts
           method: "POST",
@@ -497,7 +497,7 @@ function RoutesByLocation({ username }) {
         routes: [routeObj],
       };
       const res = await fetch(
-        "https://climbing-backend-functions.azurewebsites.net/api/routes",
+        `${process.env.REACT_APP_API_URL}/routes`,
         {
           // changed from http://localhost:7071/api/routes
           method: "POST",
