@@ -46,7 +46,8 @@ const Register = () => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/register_users`,
+        "https://climbing-backend-functions.azurewebsites.net/api/register_users",
+        // `${process.env.REACT_APP_API_URL}/register_users`,
         {
           // changed from http://localhost:7071/api/register_users for deployment
           method: "POST",

@@ -21,7 +21,8 @@ const AddAttemptModal = ({
   useEffect(() => {
     if (open) {
       fetch(
-        `${process.env.REACT_APP_API_URL}/misc_additions?entity=result`
+        "https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=result"
+        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=result`
       ) // changed from http://localhost:7071/api/misc_additions?entity=result for deployment
         .then((res) => res.json())
         .then((data) => {
@@ -29,7 +30,8 @@ const AddAttemptModal = ({
         })
         .catch(() => setResultOptions([]));
       fetch(
-        `${process.env.REACT_APP_API_URL}/misc_additions?entity=mode`
+        "https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=mode"
+        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=mode`
       ) // changed from http://localhost:7071/api/misc_additions?entity=mode for deployment
         .then((res) => res.json())
         .then((data) => {
