@@ -5,8 +5,13 @@ function AddGyms({ username }) {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [gradeSystems, setGradeSystems] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState('');
-  const [selectedGym, setSelectedGym] = useState('');
+  // Separate company selection for each section
+  const [selectedCompanyForGym, setSelectedCompanyForGym] = useState('');
+  const [selectedCompanyForColour, setSelectedCompanyForColour] = useState('');
+  const [selectedCompanyForLocation, setSelectedCompanyForLocation] = useState('');
+
+  // Separate gym selection for location and (if needed) colour
+  const [selectedGymForLocation, setSelectedGymForLocation] = useState('');
 
   // TODO: Add states for form inputs (new company name, country, grade systems, etc.)
   // TODO: Add states for new gym inputs (suburb, city, country)
@@ -27,13 +32,13 @@ function AddGyms({ username }) {
   // States for Add New Colour
   const [gymsForSelection, setGymsForSelection] = useState([]);
   const [newColourName, setNewColourName] = useState('');
-  const [newColourHex, setNewColourHex] = useState('');
+  
   const [addColourError, setAddColourError] = useState('');
 
   // States for Add New Location(s)
   const [climbTypes, setClimbTypes] = useState([]);
   const [selectedClimbTypeForLocation, setSelectedClimbTypeForLocation] = useState('');
-  const [locationNamePrefix, setLocationNamePrefix] = useState('');
+  
   const [locationInputMethod, setLocationInputMethod] = useState('range'); // 'range' or 'individual'
   const [locationRangeStart, setLocationRangeStart] = useState('');
   const [locationRangeEnd, setLocationRangeEnd] = useState('');
@@ -97,16 +102,10 @@ function AddGyms({ username }) {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchCompanies();
-    fetchGradeSystems();
-    fetchClimbTypes();
-  }, [fetchCompanies, fetchGradeSystems, fetchClimbTypes]);
-
   const fetchGyms = useCallback(async (companyName) => {
     if (!companyName || !username) {
       setGymsForSelection([]);
-      setSelectedGym(''); // Clear selected gym if company is cleared
+      setSelectedGymForLocation(''); // Clear selected gym for location if company is cleared
       return;
     }
     setLoading(true);
@@ -127,16 +126,31 @@ function AddGyms({ username }) {
       setGymsForSelection([]);
     }
     setLoading(false);
-  }, [username, setSelectedGym]); // Added setSelectedGym to dependencies
+  }, [username]);
 
   useEffect(() => {
-    if (selectedCompany) {
-      fetchGyms(selectedCompany);
+    fetchCompanies();
+    fetchGradeSystems();
+    fetchClimbTypes();
+  }, [fetchCompanies, fetchGradeSystems, fetchClimbTypes]);
+
+  // Fetch gyms for Add Gym section
+  useEffect(() => {
+    if (selectedCompanyForGym) {
+      fetchGyms(selectedCompanyForGym);
     } else {
-      setGymsForSelection([]); // Clear gyms if no company is selected
-      setSelectedGym(''); // Clear selected gym as well
+      setGymsForSelection([]);
     }
-  }, [selectedCompany, fetchGyms, setSelectedGym]); // Added setSelectedGym to dependencies
+  }, [selectedCompanyForGym, fetchGyms]);
+
+  // Fetch gyms for Add Location section
+  useEffect(() => {
+    if (selectedCompanyForLocation) {
+      fetchGyms(selectedCompanyForLocation);
+    } else {
+      setGymsForSelection([]);
+    }
+  }, [selectedCompanyForLocation, fetchGyms]);
 
   const handleReturnHome = () => {
     navigate('/'); // Assuming '/' is the RoutesByLocation page
@@ -157,10 +171,12 @@ function AddGyms({ username }) {
     try {
       const payload = {
         entity: 'company',
-        company_name: newCompanyName.trim(),
-        primary_country: newCompanyCountry.trim(),
-        boulder_grade_system: selectedBoulderGradeSystem,
-        sport_grade_system: selectedSportGradeSystem,
+        data: {
+          companyName: newCompanyName.trim(),
+          boulderGradeSystem: selectedBoulderGradeSystem,
+          sportGradeSystem: selectedSportGradeSystem,
+          primaryCountry: newCompanyCountry.trim(),
+        }
       };
       // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
@@ -192,7 +208,7 @@ function AddGyms({ username }) {
   };
 
   const handleAddGym = async () => {
-    if (!selectedCompany) {
+    if (!selectedCompanyForGym) {
       setAddGymError('Please select a company.');
       setSuccessMessage('');
       setError(''); 
@@ -213,10 +229,12 @@ function AddGyms({ username }) {
     try {
       const payload = {
         entity: 'gym',
-        company_name: selectedCompany,
-        suburb: newGymSuburb.trim(),
-        city: newGymCity.trim(),
-        country: newGymCountry.trim(),
+        data: {
+          companyName: selectedCompanyForGym,
+          suburb: newGymSuburb.trim(),
+          city: newGymCity.trim(),
+          country: newGymCountry.trim(),
+        }
       };
       // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
@@ -236,8 +254,7 @@ function AddGyms({ username }) {
       }
 
       setSuccessMessage(responseData.message || 'Gym added successfully!');
-      // Clear form fields for Add Gym
-      setSelectedCompany(''); // Or reset to a default prompt like "Select Company"
+      setSelectedCompanyForGym(''); // Or reset to a default prompt like "Select Company"
       setNewGymSuburb('');
       setNewGymCity('');
       setNewGymCountry('');
@@ -249,23 +266,16 @@ function AddGyms({ username }) {
   };
 
   const handleAddColour = async () => {
-    if (!selectedCompany || !selectedGym) {
-      setAddColourError('Please select a company and a gym.');
+    if (!selectedCompanyForColour) {
+      setAddColourError('Please select a company.');
       setSuccessMessage(''); setError('');
       return;
     }
-    if (!newColourName.trim() || !newColourHex.trim()) {
-      setAddColourError('Colour Name and Hex Code are required.');
+    if (!newColourName.trim()) {
+      setAddColourError('Colour Name is required.');
       setSuccessMessage(''); setError('');
       return;
     }
-    // Basic hex code validation (starts with #, 3 or 6 hex chars)
-    if (!/^#[0-9A-Fa-f]{3}$|^#[0-9A-Fa-f]{6}$/.test(newColourHex.trim())) {
-        setAddColourError('Invalid Hex Code format. Use #RGB or #RRGGBB.');
-        setSuccessMessage(''); setError('');
-        return;
-    }
-
     setLoading(true);
     setAddColourError('');
     setSuccessMessage(''); setError('');
@@ -273,10 +283,10 @@ function AddGyms({ username }) {
     try {
       const payload = {
         entity: 'colour',
-        company_name: selectedCompany,
-        suburb: selectedGym, // Assuming selectedGym stores the suburb name
-        colour_name: newColourName.trim(),
-        hex_code: newColourHex.trim(),
+        data: {
+          companyName: selectedCompanyForColour,
+          colour: newColourName.trim(),
+        }
       };
       // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
@@ -297,8 +307,9 @@ function AddGyms({ username }) {
 
       setSuccessMessage(responseData.message || 'Colour added successfully!');
       setNewColourName('');
-      setNewColourHex('');
-      // Optionally, clear selectedCompany/selectedGym or refetch colours if displayed
+      
+      setSelectedCompanyForColour('');
+      // Optionally, clear selectedCompany/selectedGymForLocation or refetch colours if displayed
     } catch (e) {
       setAddColourError(`Failed to add colour: ${e.message}`);
     }
@@ -306,14 +317,13 @@ function AddGyms({ username }) {
   };
 
   const handleAddLocations = async () => {
-    if (!selectedCompany || !selectedGym || !selectedClimbTypeForLocation) {
+    if (!selectedCompanyForLocation || !selectedGymForLocation || !selectedClimbTypeForLocation) {
       setAddLocationError('Company, Gym, and Climb Type are required.');
       setSuccessMessage(''); setError('');
       return;
     }
 
     let locationNames = [];
-    const prefix = locationNamePrefix.trim();
 
     if (locationInputMethod === 'range') {
       const start = parseInt(locationRangeStart, 10);
@@ -324,7 +334,7 @@ function AddGyms({ username }) {
         return;
       }
       for (let i = start; i <= end; i++) {
-        locationNames.push(prefix ? `${prefix} ${i}` : `${i}`);
+        locationNames.push(`${i}`);
       }
     } else if (locationInputMethod === 'individual') {
       if (!locationIndividualNamesString.trim()) {
@@ -338,7 +348,7 @@ function AddGyms({ username }) {
         setSuccessMessage(''); setError('');
         return;
       }
-      locationNames = names.map(name => prefix ? `${prefix} ${name}` : name);
+      locationNames = names;
     } else {
       setAddLocationError('Invalid location input method selected.');
       setSuccessMessage(''); setError('');
@@ -358,10 +368,12 @@ function AddGyms({ username }) {
     try {
       const payload = {
         entity: 'location',
-        company_name: selectedCompany,
-        suburb: selectedGym, // Assuming selectedGym stores the suburb name
-        type: selectedClimbTypeForLocation,
-        locations: locationNames,
+        data: {
+          companyName: selectedCompanyForLocation,
+          suburb: selectedGymForLocation, // Assuming selectedGymForLocation stores the suburb name
+          type: selectedClimbTypeForLocation,
+          locations: locationNames,
+        }
       };
       // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
@@ -381,10 +393,13 @@ function AddGyms({ username }) {
       }
 
       setSuccessMessage(responseData.message || 'Location(s) added successfully!');
-      setLocationNamePrefix('');
+      
       setLocationRangeStart('');
       setLocationRangeEnd('');
       setLocationIndividualNamesString('');
+      setSelectedCompanyForLocation('');
+      setSelectedGymForLocation('');
+      setSelectedClimbTypeForLocation('');
       // Optionally clear selected company/gym/climbtype or refetch data
     } catch (e) {
       setAddLocationError(`Failed to add location(s): ${e.message}`);
@@ -487,9 +502,9 @@ function AddGyms({ username }) {
             <select
               className="form-select"
               id="selectCompanyForGym"
-              value={selectedCompany}
+              value={selectedCompanyForGym}
               onChange={(e) => {
-                setSelectedCompany(e.target.value);
+                setSelectedCompanyForGym(e.target.value);
                 setAddGymError(''); // Clear error when company changes
                 setSuccessMessage('');
               }}
@@ -534,7 +549,7 @@ function AddGyms({ username }) {
               onChange={(e) => setNewGymCountry(e.target.value)}
             />
           </div>
-          <button onClick={handleAddGym} className="btn btn-primary" disabled={loading || !username || !selectedCompany}>
+          <button onClick={handleAddGym} className="btn btn-primary" disabled={loading || !username || !selectedCompanyForGym}>
             {loading ? 'Adding...' : 'Add Gym'}
           </button>
         </div>
@@ -552,9 +567,9 @@ function AddGyms({ username }) {
             <select
               className="form-select"
               id="selectCompanyForColour"
-              value={selectedCompany}
+              value={selectedCompanyForColour}
               onChange={(e) => {
-                setSelectedCompany(e.target.value); // This will trigger fetchGyms via useEffect
+                setSelectedCompanyForColour(e.target.value);
                 setAddColourError(''); setSuccessMessage('');
               }}
               required
@@ -567,29 +582,7 @@ function AddGyms({ username }) {
               ))}
             </select>
           </div>
-          <div className="mb-3">
-            <label htmlFor="selectGymForColour" className="form-label">Select Gym*</label>
-            <select
-              className="form-select"
-              id="selectGymForColour"
-              value={selectedGym}
-              onChange={(e) => {
-                setSelectedGym(e.target.value);
-                setAddColourError(''); setSuccessMessage('');
-              }}
-              required
-              disabled={!selectedCompany || gymsForSelection.length === 0}
-            >
-              <option value="">Select Gym</option>
-              {gymsForSelection.map((gym) => (
-                // Assuming gym object has 'Suburb' as identifier and display value
-                <option key={`${gym.Suburb}-forcolour`} value={gym.Suburb}>
-                  {gym.Suburb} {gym.City && `(${gym.City})`}
-                </option>
-              ))}
-            </select>
-            {selectedCompany && gymsForSelection.length === 0 && !loading && <small className="form-text text-muted">No gyms found for this company, or still loading.</small>}
-          </div>
+
           <div className="mb-3">
             <label htmlFor="newColourName" className="form-label">Colour Name*</label>
             <input
@@ -601,19 +594,7 @@ function AddGyms({ username }) {
               required
             />
           </div>
-          <div className="mb-3">
-            <label htmlFor="newColourHex" className="form-label">Colour Hex Code* (e.g. #FF0000)</label>
-            <input
-              type="text"
-              className="form-control"
-              id="newColourHex"
-              value={newColourHex}
-              onChange={(e) => setNewColourHex(e.target.value)}
-              required
-              placeholder="#RRGGBB"
-            />
-          </div>
-          <button onClick={handleAddColour} className="btn btn-primary" disabled={loading || !username || !selectedGym}>
+          <button onClick={handleAddColour} className="btn btn-primary" disabled={loading || !username || !selectedGymForLocation}>
             {loading ? 'Adding...' : 'Add Colour'}
           </button>
         </div>
@@ -631,9 +612,9 @@ function AddGyms({ username }) {
             <select
               className="form-select"
               id="selectCompanyForLocation"
-              value={selectedCompany}
+              value={selectedCompanyForLocation}
               onChange={(e) => {
-                setSelectedCompany(e.target.value);
+                setSelectedCompanyForLocation(e.target.value);
                 setAddLocationError(''); setSuccessMessage('');
               }}
               required
@@ -651,13 +632,13 @@ function AddGyms({ username }) {
             <select
               className="form-select"
               id="selectGymForLocation"
-              value={selectedGym}
+              value={selectedGymForLocation}
               onChange={(e) => {
-                setSelectedGym(e.target.value);
+                setSelectedGymForLocation(e.target.value);
                 setAddLocationError(''); setSuccessMessage('');
               }}
               required
-              disabled={!selectedCompany || gymsForSelection.length === 0}
+              disabled={!selectedCompanyForLocation || gymsForSelection.length === 0}
             >
               <option value="">Select Gym</option>
               {gymsForSelection.map((gym) => (
@@ -666,7 +647,7 @@ function AddGyms({ username }) {
                 </option>
               ))}
             </select>
-            {selectedCompany && gymsForSelection.length === 0 && !loading && <small className="form-text text-muted">No gyms found for this company, or still loading.</small>}
+            {selectedCompanyForLocation && gymsForSelection.length === 0 && !loading && <small className="form-text text-muted">No gyms found for this company, or still loading.</small>}
           </div>
           <div className="mb-3">
             <label htmlFor="selectClimbTypeForLocation" className="form-label">Select Climb Type*</label>
@@ -679,7 +660,7 @@ function AddGyms({ username }) {
                 setAddLocationError(''); setSuccessMessage('');
               }}
               required
-              disabled={!selectedGym}
+              disabled={!selectedGymForLocation}
             >
               <option value="">Select Climb Type</option>
               {climbTypes.map((ct, index) => (
@@ -689,17 +670,7 @@ function AddGyms({ username }) {
               ))}
             </select>
           </div>
-          <div className="mb-3">
-            <label htmlFor="locationNamePrefix" className="form-label">Location Name Prefix (Optional)</label>
-            <input
-              type="text"
-              className="form-control"
-              id="locationNamePrefix"
-              value={locationNamePrefix}
-              onChange={(e) => setLocationNamePrefix(e.target.value)}
-              placeholder="e.g., Wall, Sector A - Face"
-            />
-          </div>
+
           <div className="mb-3">
             <label className="form-label">Location Input Method*</label>
             <div>
