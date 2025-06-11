@@ -1,0 +1,25 @@
+Climbing app functionality and feature additions
+
+Home/default gym in climber table - used to select company and gym after login
+
+when adding attempt, have selection of selectable phrases e.g. crimpy, pumpy, techy, scary
+
+ability to add companys, gyms, locations, colours                                                       1
+
+improve styling
+
+order numerical locations so numbers are in order in list of locations                                  2
+
+allow selection of projects which override automatic projects
+
+use power automate to automate updating of routes at cliffhanger Climbing                               3
+
+change the list of climbing attempts to show all at company when only company selected, all at gym when gym selected, all at location when location selected
+
+add profile page where you can see your 5 best sends within last 12 months
+
+add table to sql for climber connections so that users can connect to other climbers and see their climbing attempts
+
+add date added to routes
+
+add log table to track database changes, who made them and when

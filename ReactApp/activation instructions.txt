@@ -1,9 +1,0 @@
-This is the virtual environment for the backend (python azure functions)
-
-First run:
-
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
-
-Then:
-
-.\ReactApp\Scripts\Activate.ps1
