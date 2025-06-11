@@ -20,3 +20,6 @@ add profile page where you can see your 5 best sends within last 12 months
 
 add table to sql for climber connections so that users can connect to other climbers and see their climbing attempts
 
+add date added to routes
+
+add log table to track database changes, who made them and when
