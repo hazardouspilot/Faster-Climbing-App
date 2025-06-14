@@ -3,6 +3,9 @@ import "./App.css"; // Import CSS file for styling
 import Login from "./components/Login";
 import Register from "./components/Register";
 import RoutesByLocation from "./components/RoutesByLocation";
+import AddGyms from './components/AddGyms';
+import { Routes, Route } from 'react-router-dom';
+import Users from "./components/Users";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -68,10 +71,11 @@ function App() {
           </div>
         ) : (
           <div className="dashboard">
-            <h2>Dashboard</h2>
-            <p>Welcome to your climbing logbook!</p>
-            <br></br>
-            <RoutesByLocation username={user.username} />
+            <Routes>
+              <Route path="/" element={<RoutesByLocation username={user.username} />} />
+              <Route path="/users" element={<Users />} />
+              <Route path="/add-gyms" element={<AddGyms username={user.username} />} />
+            </Routes>
           </div>
         )}
       </main>

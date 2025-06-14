@@ -4,15 +4,15 @@ Home/default gym in climber table - used to select company and gym after login
 
 when adding attempt, have selection of selectable phrases e.g. crimpy, pumpy, techy, scary
 
-ability to add companys, gyms, locations, colours                                                       1
+ability to add companys, gyms, locations, colours (done 14/6)                                                      
 
 improve styling
 
-order numerical locations so numbers are in order in list of locations                                  2
+order numerical locations so numbers are in order in list of locations  (done 14/6)                                
 
 allow selection of projects which override automatic projects
 
-use power automate to automate updating of routes at cliffhanger Climbing                               3
+use power automate to automate updating of routes at cliffhanger Climbing                               1
 
 change the list of climbing attempts to show all at company when only company selected, all at gym when gym selected, all at location when location selected
 

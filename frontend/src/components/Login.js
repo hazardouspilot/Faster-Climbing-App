@@ -25,6 +25,7 @@ const Login = ({ onLoginSuccess }) => {
     try {
       const response = await fetch(
         "https://climbing-backend-functions.azurewebsites.net/api/login_user",
+        // `${process.env.REACT_APP_API_URL}/login_user`,
         {
           // changed from http://localhost:7071/api/login_user for deployment
           method: "POST",

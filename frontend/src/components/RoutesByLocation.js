@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import AddAttemptModal from "./AddAttemptModal";
 
 const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
@@ -14,6 +15,11 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
         )}&type_column=${encodeURIComponent(climbType)}`
+        // `${process.env.REACT_APP_API_URL}/attempts?dashboard=projects&username=${encodeURIComponent(
+        //   username
+        // )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
+        //   suburb
+        // )}&type_column=${encodeURIComponent(climbType)}`
       ) // changed from http://localhost:7071/api/attempts for deployment
         .then((res) => res.json())
         .then((data) => {
@@ -200,6 +206,7 @@ function AddRouteModal({
 }
 
 function RoutesByLocation({ username }) {
+  const navigate = useNavigate();
   const [company, setCompany] = useState("");
   const [suburb, setSuburb] = useState("");
   const [climbType, setClimbType] = useState("");
@@ -229,6 +236,7 @@ function RoutesByLocation({ username }) {
     console.log("Fetching companies with username:", username);
     fetch(
       "https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=company",
+      // `${process.env.REACT_APP_API_URL}/misc_additions?entity=company`,
       {
         //http://localhost:7071/api/misc_additions?entity=company
         headers: { "X-Username": username },
@@ -258,6 +266,9 @@ function RoutesByLocation({ username }) {
         `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=gym&company=${encodeURIComponent(
           company
         )}`
+        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=gym&company=${encodeURIComponent(
+        //   company
+        // )}`
       ) // http://localhost:7071/api/misc_additions?entity=gym&company=${encodeURIComponent(company)}
         .then((res) => res.json())
         .then((data) => setGyms(data.results.map((r) => r.Suburb)))
@@ -276,6 +287,9 @@ function RoutesByLocation({ username }) {
         `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(
           company
         )}&suburb=${encodeURIComponent(suburb)}`
+        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=climbtype_location&company=${encodeURIComponent(
+        //   company
+        // )}&suburb=${encodeURIComponent(suburb)}`
       ) //http://localhost:7071/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}
         .then((res) => res.json())
         .then((data) => {
@@ -311,6 +325,13 @@ function RoutesByLocation({ username }) {
         )}&location=${encodeURIComponent(
           location
         )}&type_column=${encodeURIComponent(climbType)}`
+        // `${process.env.REACT_APP_API_URL}/attempts?username=${encodeURIComponent(
+        //   username
+        // )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
+        //   suburb
+        // )}&location=${encodeURIComponent(
+        //   location
+        // )}&type_column=${encodeURIComponent(climbType)}`
       )
         .then((res) => res.json())
         .then((data) => {
@@ -336,6 +357,11 @@ function RoutesByLocation({ username }) {
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
         )}&type_column=${encodeURIComponent(climbType)}`
+        // `${process.env.REACT_APP_API_URL}/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
+        //   username
+        // )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
+        //   suburb
+        // )}&type_column=${encodeURIComponent(climbType)}`
       )
         .then((res) => res.json())
         .then((data) => {
@@ -362,6 +388,11 @@ function RoutesByLocation({ username }) {
         )}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(
           climbType
         )}`,
+        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=grades&company=${encodeURIComponent(
+        //   company
+        // )}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(
+        //   climbType
+        // )}`,
         {
           headers: { "X-Username": username },
         }
@@ -378,6 +409,9 @@ function RoutesByLocation({ username }) {
         `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=colours&company=${encodeURIComponent(
           company
         )}`,
+        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=colours&company=${encodeURIComponent(
+        //   company
+        // )}`,
         {
           headers: { "X-Username": username },
         }
@@ -388,10 +422,17 @@ function RoutesByLocation({ username }) {
     }
   }, [addRouteOpen, company, suburb, climbType, username]);
 
-  // Filter locations by selected climb type
-  const filteredLocations = climbType
+  // Filter locations by selected climb type and sort numerically if possible
+  let filteredLocations = climbType
     ? locations.filter((l) => l.climbType === climbType)
     : locations;
+  // Try to sort numerically if all names are numbers
+  if (
+    filteredLocations.length > 0 &&
+    filteredLocations.every((l) => /^\d+$/.test(l.name))
+  ) {
+    filteredLocations = [...filteredLocations].sort((a, b) => Number(a.name) - Number(b.name));
+  }
 
   const fetchRoutes = async () => {
     setLoading(true);
@@ -406,6 +447,7 @@ function RoutesByLocation({ username }) {
       });
       const res = await fetch(
         `https://climbing-backend-functions.azurewebsites.net/api/routes?${params.toString()}`,
+        // `${process.env.REACT_APP_API_URL}/routes?${params.toString()}`,
         {
           // changed from http://localhost:7071/api/routes
           headers: { "X-Username": username },
@@ -427,6 +469,7 @@ function RoutesByLocation({ username }) {
       console.log("Archiving route with username:", username);
       const res = await fetch(
         "https://climbing-backend-functions.azurewebsites.net/api/routes",
+        // `${process.env.REACT_APP_API_URL}/routes`,
         {
           // changed from http://localhost:7071/api/routes
           method: "POST",
@@ -458,6 +501,7 @@ function RoutesByLocation({ username }) {
     try {
       const res = await fetch(
         "https://climbing-backend-functions.azurewebsites.net/api/attempts",
+        // `${process.env.REACT_APP_API_URL}/attempts`,
         {
           // changed from http://localhost:7071/api/attempts
           method: "POST",
@@ -498,6 +542,7 @@ function RoutesByLocation({ username }) {
       };
       const res = await fetch(
         "https://climbing-backend-functions.azurewebsites.net/api/routes",
+        // `${process.env.REACT_APP_API_URL}/routes`,
         {
           // changed from http://localhost:7071/api/routes
           method: "POST",
@@ -595,6 +640,7 @@ function RoutesByLocation({ username }) {
         >
           Fetch Routes
         </button>
+        <button onClick={() => navigate('/add-gyms')} className="btn btn-info mt-2 ms-2">Add new gym details</button>
       </div>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: "red" }}>{error}</div>}
