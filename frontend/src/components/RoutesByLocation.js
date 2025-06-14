@@ -422,10 +422,17 @@ function RoutesByLocation({ username }) {
     }
   }, [addRouteOpen, company, suburb, climbType, username]);
 
-  // Filter locations by selected climb type
-  const filteredLocations = climbType
+  // Filter locations by selected climb type and sort numerically if possible
+  let filteredLocations = climbType
     ? locations.filter((l) => l.climbType === climbType)
     : locations;
+  // Try to sort numerically if all names are numbers
+  if (
+    filteredLocations.length > 0 &&
+    filteredLocations.every((l) => /^\d+$/.test(l.name))
+  ) {
+    filteredLocations = [...filteredLocations].sort((a, b) => Number(a.name) - Number(b.name));
+  }
 
   const fetchRoutes = async () => {
     setLoading(true);
@@ -633,7 +640,7 @@ function RoutesByLocation({ username }) {
         >
           Fetch Routes
         </button>
-        <button onClick={() => navigate('/add-gyms')} className="btn btn-info mt-2 ms-2">Add a new gym</button>
+        <button onClick={() => navigate('/add-gyms')} className="btn btn-info mt-2 ms-2">Add new gym details</button>
       </div>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: "red" }}>{error}</div>}

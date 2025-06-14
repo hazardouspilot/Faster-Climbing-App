@@ -5,46 +5,28 @@ function AddGyms({ username }) {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [gradeSystems, setGradeSystems] = useState([]);
-  // Separate company selection for each section
-  const [selectedCompanyForGym, setSelectedCompanyForGym] = useState('');
-  const [selectedCompanyForColour, setSelectedCompanyForColour] = useState('');
-  const [selectedCompanyForLocation, setSelectedCompanyForLocation] = useState('');
-
-  // Separate gym selection for location and (if needed) colour
-  const [selectedGymForLocation, setSelectedGymForLocation] = useState('');
-
-  // TODO: Add states for form inputs (new company name, country, grade systems, etc.)
-  // TODO: Add states for new gym inputs (suburb, city, country)
-  // TODO: Add states for new colour inputs
-  // TODO: Add states for new location inputs (type, range, individual names)
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [selectedGym, setSelectedGym] = useState('');
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newCompanyCountry, setNewCompanyCountry] = useState('');
   const [selectedBoulderGradeSystem, setSelectedBoulderGradeSystem] = useState('');
   const [selectedSportGradeSystem, setSelectedSportGradeSystem] = useState('');
   const [addCompanyError, setAddCompanyError] = useState('');
-
-  // States for Add New Gym
   const [newGymSuburb, setNewGymSuburb] = useState('');
   const [newGymCity, setNewGymCity] = useState('');
   const [newGymCountry, setNewGymCountry] = useState('');
   const [addGymError, setAddGymError] = useState('');
-
-  // States for Add New Colour
   const [gymsForSelection, setGymsForSelection] = useState([]);
   const [newColourName, setNewColourName] = useState('');
-  
   const [addColourError, setAddColourError] = useState('');
-
-  // States for Add New Location(s)
-  const [climbTypes, setClimbTypes] = useState([]);
+  // Hardcoded climb types for location addition
+  const climbTypes = ['Sport', 'Boulder', 'Speed'];
   const [selectedClimbTypeForLocation, setSelectedClimbTypeForLocation] = useState('');
-  
-  const [locationInputMethod, setLocationInputMethod] = useState('range'); // 'range' or 'individual'
+  const [locationInputMethod, setLocationInputMethod] = useState('range');
   const [locationRangeStart, setLocationRangeStart] = useState('');
   const [locationRangeEnd, setLocationRangeEnd] = useState('');
   const [locationIndividualNamesString, setLocationIndividualNamesString] = useState('');
   const [addLocationError, setAddLocationError] = useState('');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -84,43 +66,26 @@ function AddGyms({ username }) {
     setLoading(false);
   }, []);
 
-  const fetchClimbTypes = useCallback(async () => {
-    setLoading(true);
-    try {
-      // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
-      const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
-      const response = await fetch(`${apiUrl}/misc_additions?entity=climbtype`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setClimbTypes(data.results || []);
-    } catch (e) {
-      setError(`Failed to fetch climb types: ${e.message}`);
-      setClimbTypes([]);
-    }
-    setLoading(false);
-  }, []);
-
+  // Fetch gyms for a company, return an array of suburb strings (like RoutesByLocation)
   const fetchGyms = useCallback(async (companyName) => {
     if (!companyName || !username) {
       setGymsForSelection([]);
-      setSelectedGymForLocation(''); // Clear selected gym for location if company is cleared
+      setSelectedGym('');
       return;
     }
     setLoading(true);
-    setError(''); // Clear global error
+    setError('');
     try {
-      // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
-      const response = await fetch(`${apiUrl}/misc_additions?entity=gym&company_name=${encodeURIComponent(companyName)}`, {
+      const response = await fetch(`${apiUrl}/misc_additions?entity=gym&company=${encodeURIComponent(companyName)}`, {
         headers: { 'X-Username': username },
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setGymsForSelection(data.results || []);
+      // Map to array of suburb strings for dropdown compatibility
+      setGymsForSelection((data.results || []).map(g => g.Suburb));
     } catch (e) {
       setError(`Failed to fetch gyms for ${companyName}: ${e.message}`);
       setGymsForSelection([]);
@@ -131,26 +96,18 @@ function AddGyms({ username }) {
   useEffect(() => {
     fetchCompanies();
     fetchGradeSystems();
-    fetchClimbTypes();
-  }, [fetchCompanies, fetchGradeSystems, fetchClimbTypes]);
+    // Do NOT fetch climb types here; only fetch after gym is selected
+  }, [fetchCompanies, fetchGradeSystems]);
 
-  // Fetch gyms for Add Gym section
+  // Fetch gyms when selectedCompany changes
   useEffect(() => {
-    if (selectedCompanyForGym) {
-      fetchGyms(selectedCompanyForGym);
+    if (selectedCompany) {
+      fetchGyms(selectedCompany);
     } else {
       setGymsForSelection([]);
+      setSelectedGym('');
     }
-  }, [selectedCompanyForGym, fetchGyms]);
-
-  // Fetch gyms for Add Location section
-  useEffect(() => {
-    if (selectedCompanyForLocation) {
-      fetchGyms(selectedCompanyForLocation);
-    } else {
-      setGymsForSelection([]);
-    }
-  }, [selectedCompanyForLocation, fetchGyms]);
+  }, [selectedCompany, fetchGyms]);
 
   const handleReturnHome = () => {
     navigate('/'); // Assuming '/' is the RoutesByLocation page
@@ -178,7 +135,6 @@ function AddGyms({ username }) {
           primaryCountry: newCompanyCountry.trim(),
         }
       };
-      // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
       const response = await fetch(`${apiUrl}/misc_additions`, {
         method: 'POST',
@@ -208,7 +164,7 @@ function AddGyms({ username }) {
   };
 
   const handleAddGym = async () => {
-    if (!selectedCompanyForGym) {
+    if (!selectedCompany) {
       setAddGymError('Please select a company.');
       setSuccessMessage('');
       setError(''); 
@@ -230,13 +186,12 @@ function AddGyms({ username }) {
       const payload = {
         entity: 'gym',
         data: {
-          companyName: selectedCompanyForGym,
+          companyName: selectedCompany,
           suburb: newGymSuburb.trim(),
           city: newGymCity.trim(),
           country: newGymCountry.trim(),
         }
       };
-      // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
       const response = await fetch(`${apiUrl}/misc_additions`, {
         method: 'POST',
@@ -254,11 +209,10 @@ function AddGyms({ username }) {
       }
 
       setSuccessMessage(responseData.message || 'Gym added successfully!');
-      setSelectedCompanyForGym(''); // Or reset to a default prompt like "Select Company"
       setNewGymSuburb('');
       setNewGymCity('');
       setNewGymCountry('');
-      // Potentially refresh a list of gyms if displayed, or just clear form
+      fetchGyms(selectedCompany);
     } catch (e) {
       setAddGymError(`Failed to add gym: ${e.message}`);
     }
@@ -266,7 +220,7 @@ function AddGyms({ username }) {
   };
 
   const handleAddColour = async () => {
-    if (!selectedCompanyForColour) {
+    if (!selectedCompany) {
       setAddColourError('Please select a company.');
       setSuccessMessage(''); setError('');
       return;
@@ -284,11 +238,10 @@ function AddGyms({ username }) {
       const payload = {
         entity: 'colour',
         data: {
-          companyName: selectedCompanyForColour,
+          companyName: selectedCompany,
           colour: newColourName.trim(),
         }
       };
-      // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
       const response = await fetch(`${apiUrl}/misc_additions`, {
         method: 'POST',
@@ -307,9 +260,6 @@ function AddGyms({ username }) {
 
       setSuccessMessage(responseData.message || 'Colour added successfully!');
       setNewColourName('');
-      
-      setSelectedCompanyForColour('');
-      // Optionally, clear selectedCompany/selectedGymForLocation or refetch colours if displayed
     } catch (e) {
       setAddColourError(`Failed to add colour: ${e.message}`);
     }
@@ -317,7 +267,7 @@ function AddGyms({ username }) {
   };
 
   const handleAddLocations = async () => {
-    if (!selectedCompanyForLocation || !selectedGymForLocation || !selectedClimbTypeForLocation) {
+    if (!selectedCompany || !selectedGym || !selectedClimbTypeForLocation) {
       setAddLocationError('Company, Gym, and Climb Type are required.');
       setSuccessMessage(''); setError('');
       return;
@@ -366,16 +316,19 @@ function AddGyms({ username }) {
     setSuccessMessage(''); setError('');
 
     try {
+      // Build array of location objects with type for backend
+      const locationsPayload = locationNames.map(loc => ({
+        location: loc,
+        type: selectedClimbTypeForLocation,
+      }));
       const payload = {
         entity: 'location',
-        data: {
-          companyName: selectedCompanyForLocation,
-          suburb: selectedGymForLocation, // Assuming selectedGymForLocation stores the suburb name
-          type: selectedClimbTypeForLocation,
-          locations: locationNames,
-        }
+        companyName: selectedCompany,
+        suburb: selectedGym, // selectedGym stores the suburb name
+        data: locationsPayload,
       };
-      // const apiUrl = process.env.REACT_APP_API_URL || 'https://climbing-backend-functions.azurewebsites.net/api';
+
+      console.log('Submitting locations payload:', payload);
       const apiUrl = 'https://climbing-backend-functions.azurewebsites.net/api';
       const response = await fetch(`${apiUrl}/misc_additions`, {
         method: 'POST',
@@ -393,27 +346,21 @@ function AddGyms({ username }) {
       }
 
       setSuccessMessage(responseData.message || 'Location(s) added successfully!');
-      
       setLocationRangeStart('');
       setLocationRangeEnd('');
       setLocationIndividualNamesString('');
-      setSelectedCompanyForLocation('');
-      setSelectedGymForLocation('');
+      setSelectedGym('');
       setSelectedClimbTypeForLocation('');
-      // Optionally clear selected company/gym/climbtype or refetch data
     } catch (e) {
       setAddLocationError(`Failed to add location(s): ${e.message}`);
     }
     setLoading(false);
   };
 
-  // TODO: Implement resetForm function or logic to clear inputs after successful submission
-  // TODO: Implement resetForm function or logic to clear inputs after successful submission
-
   return (
     <div className="container mt-5">
       <h2>Add New Gym Details</h2>
-      <p className="alert alert-info">Please enter new gym details carefully, the usefulness of this app for your fellow climbers relies on you. The details you enter may also be used to contact the gym in future to connect this app to their route database.</p>
+      <p className="alert alert-info">Please enter details carefully, the usefulness of this app for your fellow climbers relies on you.</p>
       
       {error && <div className="alert alert-danger">{error}</div>}
       {successMessage && <div className="alert alert-success">{successMessage}</div>}
@@ -424,7 +371,7 @@ function AddGyms({ username }) {
       {/* Section to Add New Company */}
       <div className="card mb-4">
         <div className="card-header">
-          <h4>Add New Company</h4>
+          <h4>Option 1: Add a New Company</h4>
         </div>
         <div className="card-body">
           {addCompanyError && <div className="alert alert-danger mt-2">{addCompanyError}</div>}
@@ -490,248 +437,190 @@ function AddGyms({ username }) {
         </div>
       </div>
 
-      {/* Section to Add New Gym under an Existing Company */}
+      {/* Step 2: Select Company */}
       <div className="card mb-4">
         <div className="card-header">
-          <h4>Add New Gym</h4>
+          <h4>Option 2: Select an existing Company to add a Gym, Colours or Locations</h4>
         </div>
         <div className="card-body">
-          {addGymError && <div className="alert alert-danger mt-2">{addGymError}</div>}
-          <div className="mb-3">
-            <label htmlFor="selectCompanyForGym" className="form-label">Select Company*</label>
-            <select
-              className="form-select"
-              id="selectCompanyForGym"
-              value={selectedCompanyForGym}
-              onChange={(e) => {
-                setSelectedCompanyForGym(e.target.value);
-                setAddGymError(''); // Clear error when company changes
-                setSuccessMessage('');
-              }}
-              required
-            >
-              <option value="">Select Company</option>
-              {companies.map((company, index) => (
-                <option key={`${company.CompanyName}-${index}-forgym`} value={company.CompanyName}>
-                  {company.CompanyName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-3">
-            <label htmlFor="newGymSuburb" className="form-label">Suburb*</label>
-            <input
-              type="text"
-              className="form-control"
-              id="newGymSuburb"
-              value={newGymSuburb}
-              onChange={(e) => setNewGymSuburb(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="newGymCity" className="form-label">City</label>
-            <input
-              type="text"
-              className="form-control"
-              id="newGymCity"
-              value={newGymCity}
-              onChange={(e) => setNewGymCity(e.target.value)}
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="newGymCountry" className="form-label">Country</label>
-            <input
-              type="text"
-              className="form-control"
-              id="newGymCountry"
-              value={newGymCountry}
-              onChange={(e) => setNewGymCountry(e.target.value)}
-            />
-          </div>
-          <button onClick={handleAddGym} className="btn btn-primary" disabled={loading || !username || !selectedCompanyForGym}>
-            {loading ? 'Adding...' : 'Add Gym'}
-          </button>
+          <p>Note: Gyms named according to their suburb.</p>
+          <select
+            className="form-select mb-3"
+            value={selectedCompany}
+            onChange={e => {
+              setSelectedCompany(e.target.value);
+              setSelectedGym('');
+              setSuccessMessage('');
+              setError('');
+            }}
+          >
+            <option value="">Select Company</option>
+            {companies.map((company, index) => (
+              <option key={`${company.CompanyName}-${index}`} value={company.CompanyName}>{company.CompanyName}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Section to Add New Colour */}
-      <div className="card mb-4">
-        <div className="card-header">
-          <h4>Add New Colour</h4>
-        </div>
-        <div className="card-body">
-          {addColourError && <div className="alert alert-danger mt-2">{addColourError}</div>}
-          <div className="mb-3">
-            <label htmlFor="selectCompanyForColour" className="form-label">Select Company*</label>
-            <select
-              className="form-select"
-              id="selectCompanyForColour"
-              value={selectedCompanyForColour}
-              onChange={(e) => {
-                setSelectedCompanyForColour(e.target.value);
-                setAddColourError(''); setSuccessMessage('');
-              }}
-              required
-            >
-              <option value="">Select Company</option>
-              {companies.map((company) => (
-                <option key={`${company.CompanyName}-forcolour`} value={company.CompanyName}>
-                  {company.CompanyName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-3">
-            <label htmlFor="newColourName" className="form-label">Colour Name*</label>
-            <input
-              type="text"
-              className="form-control"
-              id="newColourName"
-              value={newColourName}
-              onChange={(e) => setNewColourName(e.target.value)}
-              required
-            />
-          </div>
-          <button onClick={handleAddColour} className="btn btn-primary" disabled={loading || !username || !selectedGymForLocation}>
-            {loading ? 'Adding...' : 'Add Colour'}
-          </button>
-        </div>
-      </div>
-
-      {/* Section to Add New Location(s) */}
-      <div className="card mb-4">
-        <div className="card-header">
-          <h4>Add New Location(s)</h4>
-        </div>
-        <div className="card-body">
-          {addLocationError && <div className="alert alert-danger mt-2">{addLocationError}</div>}
-          <div className="mb-3">
-            <label htmlFor="selectCompanyForLocation" className="form-label">Select Company*</label>
-            <select
-              className="form-select"
-              id="selectCompanyForLocation"
-              value={selectedCompanyForLocation}
-              onChange={(e) => {
-                setSelectedCompanyForLocation(e.target.value);
-                setAddLocationError(''); setSuccessMessage('');
-              }}
-              required
-            >
-              <option value="">Select Company</option>
-              {companies.map((company) => (
-                <option key={`${company.CompanyName}-forlocation`} value={company.CompanyName}>
-                  {company.CompanyName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-3">
-            <label htmlFor="selectGymForLocation" className="form-label">Select Gym*</label>
-            <select
-              className="form-select"
-              id="selectGymForLocation"
-              value={selectedGymForLocation}
-              onChange={(e) => {
-                setSelectedGymForLocation(e.target.value);
-                setAddLocationError(''); setSuccessMessage('');
-              }}
-              required
-              disabled={!selectedCompanyForLocation || gymsForSelection.length === 0}
-            >
-              <option value="">Select Gym</option>
-              {gymsForSelection.map((gym) => (
-                <option key={`${gym.Suburb}-forlocation`} value={gym.Suburb}>
-                  {gym.Suburb} {gym.City && `(${gym.City})`}
-                </option>
-              ))}
-            </select>
-            {selectedCompanyForLocation && gymsForSelection.length === 0 && !loading && <small className="form-text text-muted">No gyms found for this company, or still loading.</small>}
-          </div>
-          <div className="mb-3">
-            <label htmlFor="selectClimbTypeForLocation" className="form-label">Select Climb Type*</label>
-            <select
-              className="form-select"
-              id="selectClimbTypeForLocation"
-              value={selectedClimbTypeForLocation}
-              onChange={(e) => {
-                setSelectedClimbTypeForLocation(e.target.value);
-                setAddLocationError(''); setSuccessMessage('');
-              }}
-              required
-              disabled={!selectedGymForLocation}
-            >
-              <option value="">Select Climb Type</option>
-              {climbTypes.map((ct, index) => (
-                <option key={`${ct.ClimbType}-${index}-forlocation`} value={ct.ClimbType}>
-                  {ct.ClimbType}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Location Input Method*</label>
-            <div>
-              <div className="form-check form-check-inline">
-                <input className="form-check-input" type="radio" name="locationInputMethod" id="rangeMethod" value="range" checked={locationInputMethod === 'range'} onChange={() => setLocationInputMethod('range')} />
-                <label className="form-check-label" htmlFor="rangeMethod">Numerical Range</label>
-              </div>
-              <div className="form-check form-check-inline">
-                <input className="form-check-input" type="radio" name="locationInputMethod" id="individualMethod" value="individual" checked={locationInputMethod === 'individual'} onChange={() => setLocationInputMethod('individual')} />
-                <label className="form-check-label" htmlFor="individualMethod">Individual Names</label>
+      {/* Add Gym and Add Colour - only if a company is selected */}
+      {selectedCompany && (
+        <div className="row">
+          <div className="col-md-6">
+            <div className="card mb-4">
+              <div className="card-header"><h4>Add New Gym/Suburb</h4></div>
+              <div className="card-body">
+                {addGymError && <div className="alert alert-danger mt-2">{addGymError}</div>}
+                <div className="mb-3">
+                  <label htmlFor="newGymSuburb" className="form-label">Suburb*</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="newGymSuburb"
+                    value={newGymSuburb}
+                    onChange={e => setNewGymSuburb(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="newGymCity" className="form-label">City</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="newGymCity"
+                    value={newGymCity}
+                    onChange={e => setNewGymCity(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="newGymCountry" className="form-label">Country</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="newGymCountry"
+                    value={newGymCountry}
+                    onChange={e => setNewGymCountry(e.target.value)}
+                  />
+                </div>
+                <button onClick={handleAddGym} className="btn btn-primary" disabled={loading || !username}>
+                  {loading ? 'Adding...' : 'Add Gym'}
+                </button>
               </div>
             </div>
           </div>
-
-          {locationInputMethod === 'range' && (
-            <div className="row mb-3">
-              <div className="col">
-                <label htmlFor="locationRangeStart" className="form-label">Range Start*</label>
-                <input type="number" className="form-control" id="locationRangeStart" value={locationRangeStart} onChange={(e) => setLocationRangeStart(e.target.value)} placeholder="e.g., 1" />
-              </div>
-              <div className="col">
-                <label htmlFor="locationRangeEnd" className="form-label">Range End*</label>
-                <input type="number" className="form-control" id="locationRangeEnd" value={locationRangeEnd} onChange={(e) => setLocationRangeEnd(e.target.value)} placeholder="e.g., 10" />
+          <div className="col-md-6">
+            <div className="card mb-4">
+              <div className="card-header"><h4>Add New Colour</h4></div>
+              <div className="card-body">
+                {addColourError && <div className="alert alert-danger mt-2">{addColourError}</div>}
+                <div className="mb-3">
+                  <label htmlFor="newColourName" className="form-label">Colour Name*</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="newColourName"
+                    value={newColourName}
+                    onChange={e => setNewColourName(e.target.value)}
+                    required
+                  />
+                </div>
+                <button onClick={handleAddColour} className="btn btn-primary" disabled={loading || !username}>
+                  {loading ? 'Adding...' : 'Add Colour'}
+                </button>
               </div>
             </div>
-          )}
-
-          {locationInputMethod === 'individual' && (
-            <div className="mb-3">
-              <label htmlFor="locationIndividualNamesString" className="form-label">Individual Names (comma-separated)*</label>
-              <textarea className="form-control" id="locationIndividualNamesString" rows="3" value={locationIndividualNamesString} onChange={(e) => setLocationIndividualNamesString(e.target.value)} placeholder="e.g., The Slab, The Arch, Overhang"></textarea>
-            </div>
-          )}
-
-          <button onClick={handleAddLocations} className="btn btn-primary" disabled={loading || !username || !selectedClimbTypeForLocation}>
-            {loading ? 'Adding...' : 'Add Location(s)'}
-          </button>
+          </div>
         </div>
-      </div>
-
-      <hr />
-      <h4>Existing Companies:</h4>
-      {companies.length > 0 ? (
-        <ul>
-          {companies.map((company, index) => (
-            <li key={index}>{company.CompanyName}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>No companies found or yet to load.</p>
       )}
 
-      <h4>Available Grade Systems:</h4>
-      {gradeSystems.length > 0 ? (
-        <ul>
-          {gradeSystems.map((system, index) => (
-            <li key={index}>{system.GradingSystem}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>No grade systems found or yet to load.</p>
+      {/* Step 3: Select Gym for Adding Locations */}
+      {selectedCompany && (
+        <div className="card mb-4">
+          <div className="card-header"><h4>Step 3: Select Gym for Locations</h4></div>
+          <div className="card-body">
+            <p>If you would like to add new locations for a specific gym, select the relevant gym.</p>
+            <select
+              className="form-control"
+              value={selectedGym}
+              onChange={e => setSelectedGym(e.target.value)}
+              disabled={!selectedCompany || gymsForSelection.length === 0}
+            >
+              <option value="">Select Gym (Suburb)</option>
+              {gymsForSelection.map((suburb, idx) => (
+                <option key={idx} value={suburb}>
+                  {suburb}
+                </option>
+              ))}
+            </select>
+            {selectedCompany && gymsForSelection.length === 0 && !loading && <small className="form-text text-muted">No gyms found for this company, or still loading.</small>}
+          </div>
+        </div>
+      )}
+
+      {/* Add Location(s) Section - only if a gym is selected */}
+      {selectedCompany && selectedGym && (
+        <div className="card mb-4">
+          <div className="card-header"><h4>Add New Location(s)</h4></div>
+          <div className="card-body">
+            {addLocationError && <div className="alert alert-danger mt-2">{addLocationError}</div>}
+            <div className="mb-3">
+              <label htmlFor="selectClimbTypeForLocation" className="form-label">Select Climb Type*</label>
+              <select
+                className="form-select"
+                id="selectClimbTypeForLocation"
+                value={selectedClimbTypeForLocation}
+                onChange={e => {
+                  setSelectedClimbTypeForLocation(e.target.value);
+                  setAddLocationError(''); setSuccessMessage('');
+                }}
+                required
+              >
+                <option value="">Select Climb Type</option>
+                {climbTypes.map((ct, index) => (
+                  <option key={`${ct}-${index}-forlocation`} value={ct}>
+                    {ct}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Location Input Method*</label>
+              <div>
+                <div className="form-check form-check-inline">
+                  <input className="form-check-input" type="radio" name="locationInputMethod" id="rangeMethod" value="range" checked={locationInputMethod === 'range'} onChange={() => setLocationInputMethod('range')} />
+                  <label className="form-check-label" htmlFor="rangeMethod">Numerical Range</label>
+                </div>
+                <div className="form-check form-check-inline">
+                  <input className="form-check-input" type="radio" name="locationInputMethod" id="individualMethod" value="individual" checked={locationInputMethod === 'individual'} onChange={() => setLocationInputMethod('individual')} />
+                  <label className="form-check-label" htmlFor="individualMethod">Individual Names</label>
+                </div>
+              </div>
+            </div>
+
+            {locationInputMethod === 'range' && (
+              <div className="row mb-3">
+                <div className="col">
+                  <label htmlFor="locationRangeStart" className="form-label">Range Start*</label>
+                  <input type="number" className="form-control" id="locationRangeStart" value={locationRangeStart} onChange={e => setLocationRangeStart(e.target.value)} placeholder="e.g., 1" />
+                </div>
+                <div className="col">
+                  <label htmlFor="locationRangeEnd" className="form-label">Range End*</label>
+                  <input type="number" className="form-control" id="locationRangeEnd" value={locationRangeEnd} onChange={e => setLocationRangeEnd(e.target.value)} placeholder="e.g., 10" />
+                </div>
+              </div>
+            )}
+
+            {locationInputMethod === 'individual' && (
+              <div className="mb-3">
+                <label htmlFor="locationIndividualNamesString" className="form-label">Individual Names (comma-separated)*</label>
+                <textarea className="form-control" id="locationIndividualNamesString" rows="3" value={locationIndividualNamesString} onChange={e => setLocationIndividualNamesString(e.target.value)} placeholder="e.g., The Slab, The Arch, Overhang"></textarea>
+              </div>
+            )}
+
+            <button onClick={handleAddLocations} className="btn btn-primary" disabled={loading || !username || !selectedClimbTypeForLocation}>
+              {loading ? 'Adding...' : 'Add Location(s)'}
+            </button>
+          </div>
+        </div>
       )}
 
     </div>
