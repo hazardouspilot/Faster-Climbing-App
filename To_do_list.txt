@@ -23,3 +23,5 @@ add table to sql for climber connections so that users can connect to other clim
 add date added to routes
 
 add log table to track database changes, who made them and when
+
+edit function component which looks up grading systems to incorporate climb type, change grading system selection in add gym functionality so that only sport or boulder grade systems show up in the dropdown menus
