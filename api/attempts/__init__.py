@@ -169,10 +169,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 )
             mode_priority = "CASE WHEN A.Mode_column = 'Lead' THEN 1 WHEN A.Mode_column = 'Top Rope' THEN 2 WHEN A.Mode_column = 'Auto-belay' THEN 3 ELSE 4 END"
             sql = f"""
-                SELECT R.RID, R.Grade, R.Colour, R.Location, G.GradeOrder, A.Mode_column, A.AttemptNo, A.Result, A.Notes, A.Date_column, A.Time_column
+                SELECT R.RID, R.Grade, R.Colour, R.Location, G.GradeOrder, A.Mode_column, A.AttemptNo, A.Result, RS.ResultOrder, A.Notes, A.Date_column, A.Time_column
                 FROM Attempts A
                 JOIN Routes R ON A.RID = R.RID
                 JOIN Grades G ON R.Grade = G.Grade AND R.GradingSystem = G.GradingSystem
+                JOIN Results RS ON A.Result = RS.Result
                 WHERE A.Username=%s AND R.CompanyName=%s AND R.Suburb=%s AND R.Type_column=%s AND R.Existing=1
                 ORDER BY G.GradeOrder DESC, R.RID, {mode_priority}, A.AttemptNo DESC
             """
