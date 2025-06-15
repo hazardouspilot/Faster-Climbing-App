@@ -1,6 +1,31 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import AddAttemptModal from "./AddAttemptModal";
+import styles from '../RoutesByLocation.module.css';
+
+// Format date as D-MMM (e.g. 6-Jun, 15-Dec)
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return `${d.getDate()}-${d.toLocaleString('en-US', { month: 'short' })}`;
+}
+// Format time as HH:MM (e.g. 21:46, 9:45)
+function formatTimeShort(timeStr) {
+  if (!timeStr) return '';
+  // Handles both 'HH:MM:SS' and 'HH:MM' and possibly with date prefix
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : timeStr;
+}
+
+// Combine date and time into 'D-MMM HH:MM' format
+function formatDatetime(dateStr, timeStr) {
+  if (!dateStr && !timeStr) return '';
+  const datePart = formatDateShort(dateStr);
+  const timePart = formatTimeShort(timeStr);
+  return `${datePart} ${timePart}`.trim();
+}
+
 
 const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
   const [projects, setProjects] = useState([]);
@@ -15,12 +40,7 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
         )}&type_column=${encodeURIComponent(climbType)}`
-        // `${process.env.REACT_APP_API_URL}/attempts?dashboard=projects&username=${encodeURIComponent(
-        //   username
-        // )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
-        //   suburb
-        // )}&type_column=${encodeURIComponent(climbType)}`
-      ) // changed from http://localhost:7071/api/attempts for deployment
+      )
         .then((res) => res.json())
         .then((data) => {
           setProjects(data.projects || []);
@@ -38,27 +58,27 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
   if (!username || !company || !suburb || !climbType) {
     return (
       <div style={{ margin: 24 }}>
-        <h2>Projects</h2>
+        <h3>Projects</h3>
         <div>Select a Company, Gym and Climb Type to see your Projects</div>
       </div>
     );
   }
   return (
-    <div style={{ margin: 24 }}>
-      <h2>Projects</h2>
+    <div className={styles.dashboardContainer}>
+      <h3>Projects</h3>
       {loading ? (
         <div>Loading...</div>
       ) : projects.length === 0 ? (
         <div>No projects found.</div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className={styles.styledTable}>
           <thead>
             <tr>
-              <th>Grade</th>
+              <th>Gr</th>
               <th>Colour</th>
-              <th>Location</th>
+              <th>Loc</th>
               <th>Mode</th>
-              <th>Attempts</th>
+              <th>Att</th>
               <th>Last Attempt</th>
               <th>Best Result</th>
             </tr>
@@ -71,7 +91,7 @@ const ProjectsDashboard = ({ username, company, suburb, climbType }) => {
                 <td>{p.Location}</td>
                 <td>{p.Mode_column}</td>
                 <td>{p.Attempts}</td>
-                <td>{p.LastAttempt}</td>
+                <td>{formatDateShort(p.LastAttempt)}</td>
                 <td>{p.BestResult}</td>
               </tr>
             ))}
@@ -225,6 +245,59 @@ function RoutesByLocation({ username }) {
   const [userAttempts, setUserAttempts] = useState([]);
   const [, setAttemptsLoading] = useState(false);
   const [sortedAttempts, setSortedAttempts] = useState([]);
+  // Sorting state for All Attempts Sorted by Difficulty
+  const [sortBy, setSortBy] = useState('Grade');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+
+  // Helper for sorting
+  function handleSort(column) {
+    if (sortBy === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDirection('asc');
+    }
+  }
+
+  function renderSortIcon(column) {
+    if (sortBy !== column) return null;
+    return sortDirection === 'asc' ? '▲' : '▼';
+  }
+
+  function getSortedAttempts() {
+    const attempts = [...sortedAttempts];
+    return attempts.sort((a, b) => {
+      let valA, valB;
+      switch (sortBy) {
+        case 'Grade':
+          valA = a.GradeOrder ?? a.Grade;
+          valB = b.GradeOrder ?? b.Grade;
+          break;
+        case 'Mode_column':
+          valA = a.Mode_column || '';
+          valB = b.Mode_column || '';
+          break;
+        case 'Result':
+          valA = a.ResultOrder ?? 0;
+          valB = b.ResultOrder ?? 0;
+          break;
+        case 'Datetime': {
+          // Combine date and time for sorting
+          const dateA = new Date(`${a.Date_column}T${a.Time_column || '00:00'}`);
+          const dateB = new Date(`${b.Date_column}T${b.Time_column || '00:00'}`);
+          valA = dateA;
+          valB = dateB;
+          break;
+        }
+        default:
+          valA = a[sortBy] || '';
+          valB = b[sortBy] || '';
+      }
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
   const [addRouteOpen, setAddRouteOpen] = useState(false);
   const [grades, setGrades] = useState([]);
   const [colors, setColors] = useState([]);
@@ -287,10 +360,7 @@ function RoutesByLocation({ username }) {
         `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(
           company
         )}&suburb=${encodeURIComponent(suburb)}`
-        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=climbtype_location&company=${encodeURIComponent(
-        //   company
-        // )}&suburb=${encodeURIComponent(suburb)}`
-      ) //http://localhost:7071/api/misc_additions?entity=climbtype_location&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(suburb)}
+      )
         .then((res) => res.json())
         .then((data) => {
           const types = data.climbtypes.map((t) => t.ClimbType);
@@ -318,20 +388,12 @@ function RoutesByLocation({ username }) {
       setAttemptsLoading(true);
       fetch(
         `https://climbing-backend-functions.azurewebsites.net/api/attempts?username=${encodeURIComponent(
-          // changed from http://localhost:7071/api/attempts
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
         )}&location=${encodeURIComponent(
           location
         )}&type_column=${encodeURIComponent(climbType)}`
-        // `${process.env.REACT_APP_API_URL}/attempts?username=${encodeURIComponent(
-        //   username
-        // )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
-        //   suburb
-        // )}&location=${encodeURIComponent(
-        //   location
-        // )}&type_column=${encodeURIComponent(climbType)}`
       )
         .then((res) => res.json())
         .then((data) => {
@@ -352,16 +414,10 @@ function RoutesByLocation({ username }) {
     if (company && suburb && climbType && username) {
       fetch(
         `https://climbing-backend-functions.azurewebsites.net/api/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
-          // changed from http://localhost:7071/api/attempts
           username
         )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
           suburb
         )}&type_column=${encodeURIComponent(climbType)}`
-        // `${process.env.REACT_APP_API_URL}/attempts?dashboard=all_attempts_sorted&username=${encodeURIComponent(
-        //   username
-        // )}&company=${encodeURIComponent(company)}&suburb=${encodeURIComponent(
-        //   suburb
-        // )}&type_column=${encodeURIComponent(climbType)}`
       )
         .then((res) => res.json())
         .then((data) => {
@@ -388,11 +444,6 @@ function RoutesByLocation({ username }) {
         )}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(
           climbType
         )}`,
-        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=grades&company=${encodeURIComponent(
-        //   company
-        // )}&suburb=${encodeURIComponent(suburb)}&climbType=${encodeURIComponent(
-        //   climbType
-        // )}`,
         {
           headers: { "X-Username": username },
         }
@@ -409,9 +460,6 @@ function RoutesByLocation({ username }) {
         `https://climbing-backend-functions.azurewebsites.net/api/misc_additions?entity=colours&company=${encodeURIComponent(
           company
         )}`,
-        // `${process.env.REACT_APP_API_URL}/misc_additions?entity=colours&company=${encodeURIComponent(
-        //   company
-        // )}`,
         {
           headers: { "X-Username": username },
         }
@@ -447,9 +495,7 @@ function RoutesByLocation({ username }) {
       });
       const res = await fetch(
         `https://climbing-backend-functions.azurewebsites.net/api/routes?${params.toString()}`,
-        // `${process.env.REACT_APP_API_URL}/routes?${params.toString()}`,
         {
-          // changed from http://localhost:7071/api/routes
           headers: { "X-Username": username },
         }
       );
@@ -469,9 +515,7 @@ function RoutesByLocation({ username }) {
       console.log("Archiving route with username:", username);
       const res = await fetch(
         "https://climbing-backend-functions.azurewebsites.net/api/routes",
-        // `${process.env.REACT_APP_API_URL}/routes`,
         {
-          // changed from http://localhost:7071/api/routes
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -501,9 +545,7 @@ function RoutesByLocation({ username }) {
     try {
       const res = await fetch(
         "https://climbing-backend-functions.azurewebsites.net/api/attempts",
-        // `${process.env.REACT_APP_API_URL}/attempts`,
         {
-          // changed from http://localhost:7071/api/attempts
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -542,9 +584,7 @@ function RoutesByLocation({ username }) {
       };
       const res = await fetch(
         "https://climbing-backend-functions.azurewebsites.net/api/routes",
-        // `${process.env.REACT_APP_API_URL}/routes`,
         {
-          // changed from http://localhost:7071/api/routes
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -564,7 +604,7 @@ function RoutesByLocation({ username }) {
   };
 
   return (
-    <div>
+    <div className={styles.dashboardContainer}>
       {/* Projects Dashboard at the top */}
       <ProjectsDashboard
         username={username}
@@ -572,7 +612,7 @@ function RoutesByLocation({ username }) {
         suburb={suburb}
         climbType={climbType}
       />
-      <h2>View & Manage Routes by Location</h2>
+      <h3>Manage Routes, Add Attempts</h3>
       <div style={{ marginBottom: 16 }}>
         <select
           value={company}
@@ -640,7 +680,6 @@ function RoutesByLocation({ username }) {
         >
           Fetch Routes
         </button>
-        <button onClick={() => navigate('/add-gyms')} className="btn btn-info mt-2 ms-2">Add new gym details</button>
       </div>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: "red" }}>{error}</div>}
@@ -652,9 +691,8 @@ function RoutesByLocation({ username }) {
         </div>
       )}
       <table
-        border="1"
-        cellPadding="4"
-        style={{ width: "100%", marginTop: 16 }}
+        className={styles.styledTable}
+        style={{ marginTop: 16 }}
       >
         <thead>
           <tr>
@@ -683,72 +721,74 @@ function RoutesByLocation({ username }) {
           ))}
         </tbody>
       </table>
-      {/* Previous Attempts at this Location */}
-      {userAttempts.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <h3>Your Previous Attempts at this Location</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th>Grade</th>
-                <th>Colour</th>
-                <th>Mode</th>
-                <th>Result</th>
-                <th>Comments</th>
-                <th>Date</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userAttempts.map((a, idx) => (
-                <tr key={idx}>
-                  <td>{a.Grade}</td>
-                  <td>{a.Colour}</td>
-                  <td>{a.Mode_column}</td>
-                  <td>{a.Result}</td>
-                  <td>{a.Notes}</td>
-                  <td>{a.Date_column}</td>
-                  <td>{a.Time_column}</td>
+      {/* Add new gym details */}
+      <div style={{ marginTop: 32 }}>
+      <h3>Add New Gym Details</h3>
+      <button onClick={() => navigate('/add-gyms')} className="btn btn-info mt-2 ms-2">Add new gym details</button>
+      </div>
+      {/* Previous Attempts at this Location - div and table styles as per previous table*/}
+        <div className={styles.dashboardContainer}>
+          <h3>Your Attempts at this Location</h3>
+          {loading ? (
+            <div>Loading...</div>
+          ) : userAttempts.length === 0 ? (
+            <div>No attempts found.</div>
+          ) : (
+            <table className={styles.styledTable}>
+              <thead>
+                <tr>
+                  <th>Gr</th>
+                  <th>Colour</th>
+                  <th>Mode</th>
+                  <th>Result</th>
+                  <th>Comments</th>
+                  <th>Date</th>
+                  <th>Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {userAttempts.map((a, idx) => (
+                  <tr key={idx}>
+                    <td>{a.Grade}</td>
+                    <td>{a.Colour}</td>
+                    <td>{a.Mode_column}</td>
+                    <td>{a.Result}</td>
+                    <td>{a.Notes}</td>
+                    <td>{formatDateShort(a.Date_column)}</td>
+                    <td>{formatTimeShort(a.Time_column)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
-      )}
-      {/* All attempts sorted by difficulty at the bottom (all locations) */}
-      {sortedAttempts.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <h3>All Attempts Sorted by Difficulty (All Locations)</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th>Grade</th>
-                <th>Colour</th>
-                <th>Location</th>
-                <th>Mode</th>
-                <th>Attempt No</th>
-                <th>Result</th>
-                <th>Comments</th>
-                <th>Date</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAttempts.map((a, idx) => (
-                <tr key={idx}>
-                  <td>{a.Grade}</td>
-                  <td>{a.Colour}</td>
-                  <td>{a.Location}</td>
-                  <td>{a.Mode_column}</td>
-                  <td>{a.AttemptNo}</td>
-                  <td>{a.Result}</td>
-                  <td>{a.Notes}</td>
-                  <td>{a.Date_column}</td>
-                  <td>{a.Time_column}</td>
+        {sortedAttempts.length > 0 && (
+          <div className={styles.dashboardContainer}>
+            <h3>All Attempts by Difficulty</h3>
+            <table className={styles.styledTable}>
+              <thead>
+                <tr>
+                  <th onClick={() => handleSort('Grade')} style={{cursor: 'pointer'}}>Grade {renderSortIcon('Grade')}</th>
+                  <th>Colour</th>
+                  <th onClick={() => handleSort('Mode_column')} style={{cursor: 'pointer'}}>Mode {renderSortIcon('Mode_column')}</th>
+                  <th onClick={() => handleSort('Result')} style={{cursor: 'pointer'}}>Result {renderSortIcon('Result')}</th>
+                  <th>Comments</th>
+                  <th onClick={() => handleSort('Datetime')} style={{cursor: 'pointer'}}>Datetime {renderSortIcon('Datetime')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {getSortedAttempts().map((a, idx) => (
+                  <tr key={idx}>
+                    <td>{a.Grade}</td>
+                    <td>{a.Colour}</td>
+                    <td>{a.Mode_column}</td>
+                    <td>{a.Result}</td>
+                    <td>{a.Notes}</td>
+                    <td>{formatDatetime(a.Date_column, a.Time_column)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
         </div>
       )}
       <AddAttemptModal
